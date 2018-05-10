@@ -1,0 +1,43 @@
+
+<div style="position: absolute; height: 650px; width: 550px; border-style: solid; border-color: black; margin: 10px">
+
+  <div style="text-align:center" style="position: absolute; left: 10px" #mobileobject>
+    <!-- <img width="50" src="../../assets/car.jpg" [style.transform]="'rotate(' + (direction ? direction : 0) + 'deg)'"> -->
+    <img width="50" src="../../assets/ball.png">
+  </div>
+
+
+  <div style="text-align:center" style="position: absolute; top: 650px; left: 100px" class="rotate180">
+    <img width="50" src="../../assets/arrow-button.png" (mousedown)="leftAcc()" (mouseup)="stopAccX()">
+  </div>
+
+  <div style="text-align:center" style="position: absolute; top: 655px; left: 200px" class="rotate0">
+    <img width="50" src="../../assets/arrow-button.png" (mousedown)="rightAcc()" (mouseup)="stopAccX()">
+  </div>
+
+  <div style="text-align:center" style="position: absolute; top: 650px; left: 300px" class="rotate90">
+    <img width="50" src="../../assets/arrow-button.png" (mousedown)="downAcc()" (mouseup)="stopAccY()">
+  </div>
+
+  <div style="text-align:center" style="position: absolute; top: 655px; left: 400px" class="rotate270">
+    <img width="50" src="../../assets/arrow-button.png" (mousedown)="upAcc()" (mouseup)="stopAccY()">
+  </div>
+
+  <div style="text-align:center" style="position: absolute; top: 655px; left: 500px" class="rotate0">
+    <img width="50" src="../../assets/brake.png" (click)="brake()">
+  </div>
+
+  <div style="text-align:center" style="position: absolute; top: 655px; left: 600px" class="">
+    accX <span class="dynamics">{{accXViewVal}}</span>
+  </div>
+  <div style="text-align:center" style="position: absolute; top: 655px; left: 700px" class="">
+    velX <span class="dynamics">{{velXViewVal}}</span>
+  </div>
+  <div style="text-align:center" style="position: absolute; top: 655px; left: 800px" class="">
+    accY <span class="dynamics">{{accYViewVal}}</span>
+  </div>
+  <div style="text-align:center" style="position: absolute; top: 655px; left: 900px" class="">
+    velY <span class="dynamics">{{velYViewVal}}</span>
+  </div>
+
+</div>
