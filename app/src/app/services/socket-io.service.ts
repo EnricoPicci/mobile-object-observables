@@ -23,12 +23,12 @@ export class SocketIoService extends SocketService {
   }
 
   public send(message) {
-      this.socket.emit('message', message);
+      this.socket.emit('dynamics', message);
   }
 
   public onMessage(): Observable<any> {
       return new Observable<any>(observer => {
-          this.socket.on('message', (data) => observer.next(data));
+          this.socket.on('dynamics', (data) => observer.next(data));
       });
   }
 

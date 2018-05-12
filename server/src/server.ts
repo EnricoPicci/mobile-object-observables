@@ -6,6 +6,8 @@ import * as express from 'express';
 import * as socketIo from 'socket.io';
 // import socketIo from 'socket.io';  THIS IMPORT DOES NOT WORK
 
+import {Subscription} from 'rxjs';
+import {zip} from 'rxjs';
 import { MobileObject } from './mobile-object/mobile-object';
 import { throttleTime } from 'rxjs/operators';
 
@@ -20,30 +22,29 @@ export interface MobileObjectCommandMessage {
 }
 
 export class MobileObjectServer {
-    public static readonly PORT:number = 8081;
+    public static readonly PORT = 8081;
+    public static readonly DYNAMICS_NAMESPACE = '/dynamicsInfo';
+
     private app: express.Application;
     private server: Server;
     private io: socketIo.Server;
     private port: string | number;
+    // private dynamicsNamespace: string;
 
     private mobileObject = new MobileObject();
+    private throttleTime = 1000;
 
-    constructor(public showDynamics = true) {
+    private dynamicsSubscription: Subscription;
+    private showDynamicsSubscriptionX: Subscription;
+    private showDynamicsSubscriptionY: Subscription;
+
+    constructor() {
         this.createApp();
         this.config();
         this.createServer();
         this.sockets();
         this.listen();
-        if (this.showDynamics) {
-            this.mobileObject.deltaSpaceObsX
-            .pipe(
-                throttleTime(500),
-                // tap(data => console.log)
-            )
-            .subscribe(
-                d => console.log('X : ', d.cumulatedSpace, 'vel X :', d.vel)
-            )
-        }
+        this.showDynamics(true);
     }
 
     private createApp() {
@@ -56,6 +57,7 @@ export class MobileObjectServer {
 
     private config() {
         this.port = process.env.PORT || MobileObjectServer.PORT;
+        // this.dynamicsNamespace = process.env.DYNAMICSNSP || MobileObjectServer.DYNAMICS_NAMESPACE;
     }
 
     private sockets() {
@@ -67,7 +69,8 @@ export class MobileObjectServer {
             console.log('Running server on port %s', this.port);
         });
 
-        this.io.on('connect', (socket: any) => {
+        // const dynamicsIo = this.io.of(this.dynamicsNamespace);
+        this.io.on('connect', socket => {
             console.log('Connected client on port %s.', this.port);
             socket.on('message', m => {
                 const commandMessage: MobileObjectCommandMessage = m.message;
@@ -88,13 +91,54 @@ export class MobileObjectServer {
                 } 
             });
 
+            this.dynamicsSubscription = zip(
+                this.mobileObject.deltaSpaceObsX,
+                this.mobileObject.deltaSpaceObsY
+            )
+            .subscribe(
+                data => {
+                    socket.emit('dynamics', JSON.stringify(data));
+                }
+            )
+
             socket.on('disconnect', () => {
-                console.log('Client disconnected');
+                console.log('Controller client disconnected');
+                this.dynamicsSubscription.unsubscribe();
             });
         });
+
     }
 
     public getApp(): express.Application {
         return this.app;
     }
+
+    public showDynamics(bool: boolean) {
+        if (bool) {
+            this.showDynamicsSubscriptionX = this.mobileObject.deltaSpaceObsX
+            .pipe(
+                throttleTime(this.throttleTime),
+                // tap(data => console.log)
+            )
+            .subscribe(
+                d => console.log('X : ', d.cumulatedSpace, 'vel X :', d.vel)
+            );
+            this.showDynamicsSubscriptionY = this.mobileObject.deltaSpaceObsY
+            .pipe(
+                throttleTime(this.throttleTime),
+                // tap(data => console.log)
+            )
+            .subscribe(
+                d => console.log('Y : ', d.cumulatedSpace, 'vel Y :', d.vel)
+            )
+        } else {
+            if(this.showDynamicsSubscriptionX) {
+                this.showDynamicsSubscriptionX.unsubscribe();
+            }
+            if(this.showDynamicsSubscriptionY) {
+                this.showDynamicsSubscriptionY.unsubscribe();
+            }
+        }
+    }
+
 }

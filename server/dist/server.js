@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = require("http");
 const express = require("express");
 const socketIo = require("socket.io");
-// import socketIo from 'socket.io';  THIS IMPORT DOES NOT WORK
+const rxjs_1 = require("rxjs");
 const mobile_object_1 = require("./mobile-object/mobile-object");
 const operators_1 = require("rxjs/operators");
 var MobileObjectCommand;
@@ -14,19 +14,16 @@ var MobileObjectCommand;
     MobileObjectCommand["BRAKE"] = "brake";
 })(MobileObjectCommand = exports.MobileObjectCommand || (exports.MobileObjectCommand = {}));
 class MobileObjectServer {
-    constructor(showDynamics = true) {
-        this.showDynamics = showDynamics;
+    constructor() {
+        // private dynamicsNamespace: string;
         this.mobileObject = new mobile_object_1.MobileObject();
+        this.throttleTime = 1000;
         this.createApp();
         this.config();
         this.createServer();
         this.sockets();
         this.listen();
-        if (this.showDynamics) {
-            this.mobileObject.deltaSpaceObsX
-                .pipe(operators_1.throttleTime(500))
-                .subscribe(d => console.log('X : ', d.cumulatedSpace, 'vel X :', d.vel));
-        }
+        this.showDynamics(true);
     }
     createApp() {
         this.app = express();
@@ -36,6 +33,7 @@ class MobileObjectServer {
     }
     config() {
         this.port = process.env.PORT || MobileObjectServer.PORT;
+        // this.dynamicsNamespace = process.env.DYNAMICSNSP || MobileObjectServer.DYNAMICS_NAMESPACE;
     }
     sockets() {
         this.io = socketIo(this.server);
@@ -44,7 +42,8 @@ class MobileObjectServer {
         this.server.listen(this.port, () => {
             console.log('Running server on port %s', this.port);
         });
-        this.io.on('connect', (socket) => {
+        // const dynamicsIo = this.io.of(this.dynamicsNamespace);
+        this.io.on('connect', socket => {
             console.log('Connected client on port %s.', this.port);
             socket.on('message', m => {
                 const commandMessage = m.message;
@@ -64,15 +63,39 @@ class MobileObjectServer {
                     console.error('message not supported', commandMessage);
                 }
             });
+            this.dynamicsSubscription = rxjs_1.zip(this.mobileObject.deltaSpaceObsX, this.mobileObject.deltaSpaceObsY)
+                .subscribe(data => {
+                socket.emit('dynamics', JSON.stringify(data));
+            });
             socket.on('disconnect', () => {
-                console.log('Client disconnected');
+                console.log('Controller client disconnected');
+                this.dynamicsSubscription.unsubscribe();
             });
         });
     }
     getApp() {
         return this.app;
     }
+    showDynamics(bool) {
+        if (bool) {
+            this.showDynamicsSubscriptionX = this.mobileObject.deltaSpaceObsX
+                .pipe(operators_1.throttleTime(this.throttleTime))
+                .subscribe(d => console.log('X : ', d.cumulatedSpace, 'vel X :', d.vel));
+            this.showDynamicsSubscriptionY = this.mobileObject.deltaSpaceObsY
+                .pipe(operators_1.throttleTime(this.throttleTime))
+                .subscribe(d => console.log('Y : ', d.cumulatedSpace, 'vel Y :', d.vel));
+        }
+        else {
+            if (this.showDynamicsSubscriptionX) {
+                this.showDynamicsSubscriptionX.unsubscribe();
+            }
+            if (this.showDynamicsSubscriptionY) {
+                this.showDynamicsSubscriptionY.unsubscribe();
+            }
+        }
+    }
 }
 MobileObjectServer.PORT = 8081;
+MobileObjectServer.DYNAMICS_NAMESPACE = '/dynamicsInfo';
 exports.MobileObjectServer = MobileObjectServer;
 //# sourceMappingURL=server.js.map
