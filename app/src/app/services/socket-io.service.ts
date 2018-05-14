@@ -22,19 +22,13 @@ export class SocketIoService extends SocketService {
       this.socket = socketIo(SERVER_URL);
   }
 
-  public send(message) {
-      this.socket.emit('dynamics', message);
-  }
-
-  public onMessage(): Observable<any> {
-      return new Observable<any>(observer => {
-          this.socket.on('dynamics', (data) => observer.next(data));
-      });
+  public send(event: Event, message) {
+      this.socket.emit(event, message);
   }
 
   public onEvent(event: Event): Observable<Event> {
       return new Observable<Event>(observer => {
-          this.socket.on(event, () => observer.next(event));
+          this.socket.on(event, data => observer.next(data));
       });
   }
 

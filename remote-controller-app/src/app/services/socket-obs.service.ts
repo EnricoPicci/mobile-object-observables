@@ -19,11 +19,8 @@ export class SocketObsService extends SocketService {
   initSocket() {
     this.socket$ = webSocket(SERVER_URL);
   }
-  send(message: any) {
-    this.socket$.next(message);
-  }
-  onMessage(): Observable<any> {
-    return this.socket$.asObservable();
+  send(event: Event, message) {
+    // this.socket$.next(event, message);
   }
   onEvent(event: Event): Observable<Event> {
     return this.socket$.asObservable();

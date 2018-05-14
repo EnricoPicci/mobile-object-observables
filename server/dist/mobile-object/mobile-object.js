@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const rxjs_1 = require("rxjs");
 const rxjs_2 = require("rxjs");
+const rxjs_3 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const operators_2 = require("rxjs/operators");
 const operators_3 = require("rxjs/operators");
@@ -11,7 +12,8 @@ const operators_6 = require("rxjs/operators");
 const VEL_0 = 10; // if velocity (e.g. in pix per second) is lower than this value it is considered 0 when braking
 const MAX_VELOCITY = 1000;
 const BRAKE_DECELERATION = 100;
-// 5 Observables build the core of this Object
+// 6 Observables build the core of this Object
+//   1 Observable is dedicated to emit the 'turnOn' 'turnOff' event
 //   2 Observables (one per dimension, horizontal and vertical) are dedicated to push the data about the dynamics of the moving object,
 //            i.e. delta space, velocity, acceleration, space covered
 //   2 Observables (one per dimension, horizontal and vertical) are dedicated to emit new acceleration events
@@ -26,18 +28,30 @@ class MobileObject {
     //    deltaSpace: is the space covered within each timeFrame
     //    cumulatedSpace: is the space covered since start - it is sensible to direction, so if you travel back and forth
     //                    inverting direction, than you may end up with 0 cumulatedSpace even if you have travelled a lot
-    constructor(timeFramesMilliseconds, initialVelocityX = 0, initialVelocityY = 0) {
+    constructor(timeFramesMilliseconds, initialVelocityX = 0, initialVelocityY = 0, turnOn = false) {
         this.maxVelocity = MAX_VELOCITY;
         this.brakeDeceleration = BRAKE_DECELERATION;
         this.accelerateSubjectX = new rxjs_1.BehaviorSubject(0);
         this.accelerateSubjectY = new rxjs_1.BehaviorSubject(0);
-        const tFrames = timeFramesMilliseconds ? timeFramesMilliseconds : this.timeFrames(10);
+        this.turnOnSubject = new rxjs_2.ReplaySubject(1);
+        this.isTurnedOnObs = this.turnOnSubject.asObservable();
+        this.turnOnSubject.next(false);
+        const tFrames = this.tFrames(timeFramesMilliseconds);
         const dfX = this.dynamicsF(initialVelocityX, 0);
-        this.deltaSpaceObsX = this.accelerateSubjectX.pipe(operators_3.switchMap(acc => dfX(acc, tFrames)), operators_4.share());
+        this.dynamicsObsX = this.accelerateSubjectX.pipe(operators_3.switchMap(acc => dfX(acc, tFrames)), operators_1.distinctUntilChanged(), operators_4.share());
         const dfY = this.dynamicsF(initialVelocityY, 0);
-        this.deltaSpaceObsY = this.accelerateSubjectY.pipe(operators_3.switchMap(acc => dfY(acc, tFrames)), operators_4.share());
+        this.dynamicsObsY = this.accelerateSubjectY.pipe(operators_3.switchMap(acc => dfY(acc, tFrames)), operators_1.distinctUntilChanged(), operators_4.share());
+        if (turnOn) {
+            this.turnOn();
+        }
     }
-    // higher order function that returns a function that calculates the values releted to  the dynamics of the object
+    // returns an Observable that STOPS emitting when the MobileObject is turned off
+    tFrames(timeFramesMilliseconds) {
+        let turnedOn;
+        const tF = timeFramesMilliseconds ? timeFramesMilliseconds : this.timeFrames(10);
+        return this.turnOnSubject.pipe(operators_1.tap(t => turnedOn = t), operators_3.switchMap(() => tF.pipe(operators_1.skipWhile(() => !turnedOn))));
+    }
+    // higher order function that returns a function that calculates the values related to the dynamics of the object
     dynamicsF(initialVelocity, spaceTravelled) {
         let vel = initialVelocity;
         let cumulatedSpace = spaceTravelled;
@@ -59,7 +73,7 @@ class MobileObject {
         return df;
     }
     timeFrames(frameApproximateLenght, numberOfFrames) {
-        const clock = rxjs_2.timer(0, frameApproximateLenght);
+        const clock = rxjs_3.timer(0, frameApproximateLenght);
         if (numberOfFrames) {
             clock.pipe(operators_5.take(numberOfFrames));
         }
@@ -78,6 +92,12 @@ class MobileObject {
         const deltaSpace = averageVelocity * deltaTime;
         return { deltaVelocity, deltaSpace };
     }
+    turnOn() {
+        this.turnOnSubject.next(true);
+    }
+    turnOff() {
+        this.turnOnSubject.next(false);
+    }
     accelerateX(acc) {
         if (this.brakeSubscriptionX) {
             this.brakeSubscriptionX.unsubscribe();
@@ -91,8 +111,8 @@ class MobileObject {
         this.accelerateSubjectY.next(acc);
     }
     brake() {
-        this.brakeSubscriptionX = this.brakeAlongAxis(this.deltaSpaceObsX, this.accelerateSubjectX);
-        this.brakeSubscriptionY = this.brakeAlongAxis(this.deltaSpaceObsY, this.accelerateSubjectY);
+        this.brakeSubscriptionX = this.brakeAlongAxis(this.dynamicsObsX, this.accelerateSubjectX);
+        this.brakeSubscriptionY = this.brakeAlongAxis(this.dynamicsObsY, this.accelerateSubjectY);
     }
     brakeAlongAxis(deltaSpaceObs, accObs) {
         const subscription = this.getDirection(deltaSpaceObs).pipe(operators_3.switchMap(direction => {

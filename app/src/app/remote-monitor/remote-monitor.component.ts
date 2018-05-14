@@ -67,7 +67,9 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
   private manageIoConnection(): void {
     this.socketService.initSocket();
 
-    this.onMessageSubscription = this.socketService.onMessage()
+    this.socketService.send(Event.DYNAMICS_INFO, 'ci');
+
+    this.onMessageSubscription = this.socketService.onEvent(Event.DYNAMICS_INFO)
       .pipe(
         map(message => JSON.parse(message)),
         tap(message => {
@@ -101,6 +103,7 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
         this.serverConnected = false;
         console.log('disconnected');
       });
+
   }
 
   ngOnDestroy() {

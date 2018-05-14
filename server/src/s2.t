@@ -9,7 +9,6 @@ import * as socketIo from 'socket.io';
 import {Subscription} from 'rxjs';
 import {zip} from 'rxjs';
 import { MobileObject } from './mobile-object/mobile-object';
-import { tap } from 'rxjs/operators';
 import { throttleTime } from 'rxjs/operators';
 
 export enum MobileObjectCommand {
@@ -27,11 +26,9 @@ export enum MobileObjectInfoMessage {
     TURNED_ON = 'turnedOn',
     TURNED_OFF = 'turnedOff',
 }
-// Events used by the application
 const CONTROLLER_COMMAND = 'command';
 const MESSAGE_TO_CONTROLLER = 'm2c';
 const DYNAMICS_INFO = 'dynamics';
-const TURNED_ON_INFO = 'turnedOn';
 
 export class MobileObjectServer {
     public static readonly PORT = 8081;
@@ -44,7 +41,7 @@ export class MobileObjectServer {
     private mobileObject = new MobileObject();
     private throttleTime = 1000;
 
-    // private dynamicsSubscription: Subscription;
+    private dynamicsSubscription: Subscription;
     private showDynamicsSubscriptionX: Subscription;
     private showDynamicsSubscriptionY: Subscription;
 
@@ -54,7 +51,6 @@ export class MobileObjectServer {
         this.createServer();
         this.sockets();
         this.listen();
-        this.showDynamics(true);
     }
 
     private createApp() {
@@ -83,13 +79,11 @@ export class MobileObjectServer {
 
             this.handleControllerCommands(socket);
 
-            const sendDynamicsInfoSubscription = this.sendDynamicsInfo(socket);
-            const sendTurnedOnInfoSubscription = this.sendTurnedOnInfo(socket);
-
             socket.on('disconnect', () => {
                 console.log('Controller client disconnected');
-                sendDynamicsInfoSubscription.unsubscribe();
-                sendTurnedOnInfoSubscription.unsubscribe();
+                if (this.dynamicsSubscription) {
+                    this.dynamicsSubscription.unsubscribe();
+                }
             });
         });
 
@@ -99,16 +93,13 @@ export class MobileObjectServer {
         socket.on(CONTROLLER_COMMAND, commandMessage => {
             console.log('commandMessage', commandMessage);
             if (commandMessage.action === MobileObjectCommand.TURN_ON) {
-                // this.broadcastDynamicsInfo(socket);
-                // this.sendDynamicsInfo(socket);
-                // this.showDynamics(true);
-                this.mobileObject.turnOn();
+                this.broadcastDynamicsInfo(socket);
+                this.showDynamics(true);
                 socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_ON));
             } else
             if (commandMessage.action === MobileObjectCommand.TURN_OFF) {
-                // this.dynamicsSubscription.unsubscribe();
-                // this.showDynamics(false);
-                this.mobileObject.turnOff();
+                this.dynamicsSubscription.unsubscribe();
+                this.showDynamics(false);
                 socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_OFF));
             } else
             if (commandMessage.action === MobileObjectCommand.ACCELERATE_X) {
@@ -126,22 +117,16 @@ export class MobileObjectServer {
         });
     }
 
-    private sendDynamicsInfo(socket: socketIo.Socket) {
-        return zip(
-            this.mobileObject.dynamicsObsX,
-            this.mobileObject.dynamicsObsY
+    private broadcastDynamicsInfo(socket: socketIo.Socket) {
+        this.dynamicsSubscription = zip(
+            this.mobileObject.deltaSpaceObsX,
+            this.mobileObject.deltaSpaceObsY
         )
-        .pipe(
-            tap(data => socket.emit(DYNAMICS_INFO, JSON.stringify(data))),
+        .subscribe(
+            data => {
+                socket.emit(DYNAMICS_INFO, JSON.stringify(data));
+            }
         )
-        .subscribe();
-    }
-    private sendTurnedOnInfo(socket: socketIo.Socket) {
-        return this.mobileObject.isTurnedOnObs.pipe(
-            tap(isOn => console.log('isTurnedOnObs', isOn)),
-            tap(isOn => socket.emit(TURNED_ON_INFO, JSON.stringify(isOn)))
-        )
-        .subscribe();
     }
 
     public getApp(): express.Application {
@@ -150,14 +135,14 @@ export class MobileObjectServer {
 
     private showDynamics(bool: boolean) {
         if (bool) {
-            this.showDynamicsSubscriptionX = this.mobileObject.dynamicsObsX
+            this.showDynamicsSubscriptionX = this.mobileObject.deltaSpaceObsX
             .pipe(
                 throttleTime(this.throttleTime)
             )
             .subscribe(
                 d => console.log('X : ', d.cumulatedSpace, 'vel X :', d.vel)
             );
-            this.showDynamicsSubscriptionY = this.mobileObject.dynamicsObsY
+            this.showDynamicsSubscriptionY = this.mobileObject.deltaSpaceObsY
             .pipe(
                 throttleTime(this.throttleTime)
             )

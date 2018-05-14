@@ -4,7 +4,7 @@
   "description": "server for the mobile object",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -r ts-node/register src/*.spec.ts",
+    "test": "mocha -r ts-node/register src/*.spec.ts src/**/*.spec.ts",
     "tsc": "tsc"
   },
   "author": "",

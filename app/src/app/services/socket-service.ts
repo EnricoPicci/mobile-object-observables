@@ -3,13 +3,13 @@ import { Observable } from 'rxjs/Observable';
 
 export enum Event {
     CONNECT = 'connect',
-    DISCONNECT = 'disconnect'
-  }
+    DISCONNECT = 'disconnect',
+    DYNAMICS_INFO = 'dynamics'
+}
 
 
 export abstract class SocketService {
     abstract initSocket();
-    abstract send(message);
-    abstract onMessage(): Observable<any>;
+    abstract send(event: Event, data);
     abstract onEvent(event: Event): Observable<Event>;
 }
