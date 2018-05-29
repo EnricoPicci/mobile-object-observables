@@ -9,6 +9,9 @@ const operators_3 = require("rxjs/operators");
 const operators_4 = require("rxjs/operators");
 const operators_5 = require("rxjs/operators");
 const operators_6 = require("rxjs/operators");
+const operators_7 = require("rxjs/operators");
+const operators_8 = require("rxjs/operators");
+const rxjs_more_operators_1 = require("rxjs-more-operators");
 const VEL_0 = 10; // if velocity (e.g. in pix per second) is lower than this value it is considered 0 when braking
 const MAX_VELOCITY = 1000;
 const BRAKE_DECELERATION = 100;
@@ -20,6 +23,8 @@ const BRAKE_DECELERATION = 100;
 //   1 Observable is the timer that ticks at the desired time intervals
 class MobileObject {
     // timeFramesMilliseconds is a sequence of time intervals in milliseconds
+    // it starts emitting when 'turnOnSubject' emits true and stops emitting when 'turnOnSubject' emits false, until the next
+    // true is emitted by 'turnOnSubject'
     // at the end of each timeFrame an instance of 'Dynamics' is emitted by 'deltaSpaceObsX' and'deltaSpaceObsY' observables
     // each event emitted goes with an intance of type 'Dynamics', related to the X and Y axix depending on the Observable
     // the values of the instances of 'Dynamics' are the following
@@ -38,18 +43,23 @@ class MobileObject {
         this.turnOnSubject.next(false);
         const tFrames = this.tFrames(timeFramesMilliseconds);
         const dfX = this.dynamicsF(initialVelocityX, 0);
-        this.dynamicsObsX = this.accelerateSubjectX.pipe(operators_3.switchMap(acc => dfX(acc, tFrames)), operators_1.distinctUntilChanged(), operators_4.share());
+        this.dynamicsObsX = this.accelerateSubjectX.pipe(operators_3.switchMap(acc => dfX(acc, tFrames)), operators_1.distinctUntilChanged(), 
+        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+        operators_5.publishReplay(1), operators_6.refCount());
         const dfY = this.dynamicsF(initialVelocityY, 0);
-        this.dynamicsObsY = this.accelerateSubjectY.pipe(operators_3.switchMap(acc => dfY(acc, tFrames)), operators_1.distinctUntilChanged(), operators_4.share());
+        this.dynamicsObsY = this.accelerateSubjectY.pipe(operators_3.switchMap(acc => dfY(acc, tFrames)), operators_1.distinctUntilChanged(), 
+        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+        operators_5.publishReplay(1), operators_6.refCount());
         if (turnOn) {
             this.turnOn();
         }
     }
     // returns an Observable that STOPS emitting when the MobileObject is turned off
     tFrames(timeFramesMilliseconds) {
-        let turnedOn;
         const tF = timeFramesMilliseconds ? timeFramesMilliseconds : this.timeFrames(10);
-        return this.turnOnSubject.pipe(operators_1.tap(t => turnedOn = t), operators_3.switchMap(() => tF.pipe(operators_1.skipWhile(() => !turnedOn))));
+        return tF.pipe(rxjs_more_operators_1.skipToggle(this.turnOnSubject));
     }
     // higher order function that returns a function that calculates the values related to the dynamics of the object
     dynamicsF(initialVelocity, spaceTravelled) {
@@ -75,7 +85,7 @@ class MobileObject {
     timeFrames(frameApproximateLenght, numberOfFrames) {
         const clock = rxjs_3.timer(0, frameApproximateLenght);
         if (numberOfFrames) {
-            clock.pipe(operators_5.take(numberOfFrames));
+            clock.pipe(operators_7.take(numberOfFrames));
         }
         let t0 = Date.now();
         let t1;
@@ -117,13 +127,13 @@ class MobileObject {
     brakeAlongAxis(deltaSpaceObs, accObs) {
         const subscription = this.getDirection(deltaSpaceObs).pipe(operators_3.switchMap(direction => {
             accObs.next(-1 * direction * this.brakeDeceleration);
-            return deltaSpaceObs.pipe(operators_6.filter(data => Math.abs(data.vel) < VEL_0), operators_1.tap(() => accObs.next(0)), operators_1.tap(() => subscription.unsubscribe()));
+            return deltaSpaceObs.pipe(operators_8.filter(data => Math.abs(data.vel) < VEL_0), operators_1.tap(() => accObs.next(0)), operators_7.take(1));
         })).subscribe();
         return subscription;
     }
     // returns an Observable of number indicating the direction: 1 means positive velocity, -1 negative velocity
     getDirection(deltaSpaceObs) {
-        return deltaSpaceObs.pipe(operators_5.take(1), operators_2.map(data => data.vel > 0 ? 1 : -1));
+        return deltaSpaceObs.pipe(operators_7.take(1), operators_2.map(data => data.vel > 0 ? 1 : -1));
     }
     pedalUp() {
         this.accelerateX(0);

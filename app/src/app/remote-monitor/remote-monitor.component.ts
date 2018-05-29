@@ -37,37 +37,10 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
 
   ngAfterViewInit() {
     this.manageIoConnection();
-    // this.subscriptionX = this.mobileObject.deltaSpaceObsX.pipe(
-    //   tap(dynamics => {
-    //     const newPositionX = this.boundSpace(dynamics.cumulatedSpace, PLAYGROUND_WIDTH);
-    //     this.mobObjElement.nativeElement.style.left = newPositionX + 'px';
-    //   }),
-    //   throttleTime(100),
-    //   tap(dynamics => {
-    //     this.accXViewVal = dynamics.acc.toFixed(1);
-    //     this.velXViewVal = dynamics.vel.toFixed(1);
-    //   }),
-    // )
-    // .subscribe();
-
-    // this.subscriptionY = this.mobileObject.deltaSpaceObsY.pipe(
-    //   tap(dynamics => {
-    //     const newPositionY = this.boundSpace(dynamics.cumulatedSpace, PLAYGROUND_HEIGHT);
-    //     this.mobObjElement.nativeElement.style.top = newPositionY + 'px';
-    //   }),
-    //   throttleTime(100),
-    //   tap(dynamics => {
-    //     this.accYViewVal = dynamics.acc.toFixed(1);
-    //     this.velYViewVal = dynamics.vel.toFixed(1);
-    //   }),
-    // )
-    // .subscribe();
   }
 
   private manageIoConnection(): void {
     this.socketService.initSocket();
-
-    this.socketService.send(Event.DYNAMICS_INFO, 'ci');
 
     this.onMessageSubscription = this.socketService.onEvent(Event.DYNAMICS_INFO)
       .pipe(

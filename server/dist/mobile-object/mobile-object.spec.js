@@ -13,7 +13,7 @@ describe('accelerate', () => {
         const mobileObject = new mobile_object_1.MobileObject(tf);
         mobileObject.turnOn();
         mobileObject.accelerateX(acceleration);
-        mobileObject.dynamicsObsX
+        const s = mobileObject.dynamicsObsX
             .subscribe(data => {
             speed = data.vel;
             spaceTravelled = data.cumulatedSpace;
@@ -29,18 +29,18 @@ describe('accelerate', () => {
                 done();
                 throw (new Error('spaceTravelled not as expected'));
             }
+            s.unsubscribe();
             done();
         }, 1000);
     }).timeout(10000);
     it('0.2 - accelerates a mobile object on the Y axis and measure after 2 seconds the speed reached and the space covered', done => {
         const acceleration = 30;
-        const tf = timeFrames(10, 300);
         let speed = 0;
         let spaceTravelled = 0;
-        const mobileObject = new mobile_object_1.MobileObject(tf);
+        const mobileObject = new mobile_object_1.MobileObject();
         mobileObject.turnOn();
         mobileObject.accelerateY(acceleration);
-        mobileObject.dynamicsObsY
+        const s = mobileObject.dynamicsObsY
             .subscribe(data => {
             speed = data.vel;
             spaceTravelled = data.cumulatedSpace;
@@ -56,6 +56,7 @@ describe('accelerate', () => {
                 done();
                 throw (new Error('spaceTravelled not as expected'));
             }
+            s.unsubscribe();
             done();
         }, 2000);
     }).timeout(10000);
@@ -110,7 +111,7 @@ describe('accelerate', () => {
         const mobileObject = new mobile_object_1.MobileObject(tf);
         mobileObject.turnOn();
         mobileObject.accelerateY(acceleration);
-        mobileObject.dynamicsObsY
+        const s = mobileObject.dynamicsObsY
             .subscribe(data => {
             speed = data.vel;
             spaceTravelled = data.cumulatedSpace;
@@ -126,6 +127,7 @@ describe('accelerate', () => {
                 done();
                 throw (new Error('spaceTravelled not as expected'));
             }
+            s.unsubscribe();
             done();
         }, 3000);
     }).timeout(10000);
@@ -488,7 +490,66 @@ describe('accelerate brake and then pedal up', () => {
     }).timeout(10000);
 });
 describe('check if this is an HOT observable', () => {
-    it(`5.1 - a client subscribes to a mobile ojiect, then unsubscribes after 1 sec and then subscribes again after 2 sec
+    // THIS TEST HAS BEEN SUBSTITUTED BY THE FOLLOWING TEST SINCE WE USE 'publishReplay' and 'refcount' rather than 'shareReplay'
+    // 'shareReplay' can not be used since there seems to be a bug which prevent the unsubscribe to work correctly 
+    // (see a question I have specifically asked on StackOverflow)
+    // the combination of 'publishReplay' and 'refCount' on the other hand do not keep the Observable hot unless there is
+    // a subscription active.
+    // it(`5.1 - a client subscribes to a mobile ojiect, then unsubscribes after 1 sec and then subscribes again after 2 sec
+    //     since the Observable is HOT, it has continued to move even during the period where it was unsubscribed`, done => {
+    //     const mobileObject = new MobileObject();
+    //     mobileObject.turnOn();
+    //     const acceleration = 50;
+    //     let speedX = 0;
+    //     let speedY = 0;
+    //     let spaceX = 0;
+    //     let spaceY = 0;
+    //     mobileObject.accelerateX(acceleration);
+    //     mobileObject.accelerateY(acceleration);
+    //     const subscription = mobileObject.dynamicsObsX.pipe(combineLatest(mobileObject.dynamicsObsY))
+    //     .subscribe(
+    //         data => {
+    //             speedX = data[0].vel;
+    //             speedY = data[1].vel;
+    //             spaceX = data[0].cumulatedSpace;
+    //             spaceY = data[1].cumulatedSpace;
+    //         }
+    //     );
+    //     // after 1 second unsubscribe
+    //     setTimeout(() => subscription.unsubscribe(), 1000);
+    //     // after 2 seconds subscribes again and checks
+    //     setTimeout(() => {
+    //         mobileObject.dynamicsObsX.pipe(combineLatest(mobileObject.dynamicsObsY)).pipe(
+    //             take(1),
+    //         )
+    //         .subscribe(
+    //             data => {
+    //                 speedX = data[0].vel;
+    //                 speedY = data[1].vel;
+    //                 spaceX = data[0].cumulatedSpace;
+    //                 spaceY = data[1].cumulatedSpace;
+    //                 console.log('speedX after 2 seconds at second subscribe', speedX);
+    //                 console.log('speedY after 2 seconds at second subscribe', speedY);
+    //                 console.log('spaceX after 2 seconds at second subscribe', spaceX);
+    //                 console.log('spaceY after 2 seconds at second subscribe', spaceY);
+    //                 if (spaceX > 101 || spaceX < 99 || spaceY > 101 || spaceY < 99) {
+    //                     console.error('spaceX or spaceY not as expected', spaceX, spaceY);
+    //                     done();
+    //                     throw(new Error('spaceX or spaceY not as expected'));
+    //                 }
+    //             }
+    //         );
+    //         done();
+    //     }, 2000);
+    // }).timeout(10000);
+    // THIS TEST SUBSTITUTES BY THE PREVIOUS ONE SINCE WE USE 'publishReplay' and 'refcount' rather than 'shareReplay'
+    // 'shareReplay' can not be used since there seems to be a bug which prevent the unsubscribe to work correctly 
+    // (see a question I have specifically asked on StackOverflow)
+    // the combination of 'publishReplay' and 'refCount' on the other hand do not keep the Observable hot unless there is
+    // a subscription active.
+    // Therefore an initial subscription, subcription0, has been added with the sole scope of keeping the observable hot 
+    // for the duration of the test
+    it(`5.1.1 - a client subscribes to a mobile ojiect, then unsubscribes after 1 sec and then subscribes again after 2 sec
         since the Observable is HOT, it has continued to move even during the period where it was unsubscribed`, done => {
         const mobileObject = new mobile_object_1.MobileObject();
         mobileObject.turnOn();
@@ -499,7 +560,8 @@ describe('check if this is an HOT observable', () => {
         let spaceY = 0;
         mobileObject.accelerateX(acceleration);
         mobileObject.accelerateY(acceleration);
-        const subscription = mobileObject.dynamicsObsX.pipe(operators_1.combineLatest(mobileObject.dynamicsObsY))
+        const subscription0 = mobileObject.dynamicsObsX.pipe(operators_1.combineLatest(mobileObject.dynamicsObsY)).subscribe();
+        const subscription1 = mobileObject.dynamicsObsX.pipe(operators_1.combineLatest(mobileObject.dynamicsObsY))
             .subscribe(data => {
             speedX = data[0].vel;
             speedY = data[1].vel;
@@ -507,10 +569,11 @@ describe('check if this is an HOT observable', () => {
             spaceY = data[1].cumulatedSpace;
         });
         // after 1 second unsubscribe
-        setTimeout(() => subscription.unsubscribe(), 1000);
+        setTimeout(() => subscription1.unsubscribe(), 1000);
         // after 2 seconds subscribes again and checks
+        let subscription2;
         setTimeout(() => {
-            mobileObject.dynamicsObsX.pipe(operators_1.combineLatest(mobileObject.dynamicsObsY)).pipe(operators_2.take(1))
+            subscription2 = mobileObject.dynamicsObsX.pipe(operators_1.combineLatest(mobileObject.dynamicsObsY)).pipe(operators_2.take(1))
                 .subscribe(data => {
                 speedX = data[0].vel;
                 speedY = data[1].vel;
@@ -528,6 +591,11 @@ describe('check if this is an HOT observable', () => {
             });
             done();
         }, 2000);
+        // after 3 seconds unsubscribe
+        setTimeout(() => {
+            subscription0.unsubscribe();
+            subscription2.unsubscribe();
+        }, 3000);
     }).timeout(10000);
 });
 describe('turn on and off', () => {
@@ -747,7 +815,6 @@ function timeFrames(interval, numberOfFrames) {
     const clock = rxjs_1.timer(0, interval).pipe(operators_2.take(numberOfFrames));
     let t0 = Date.now();
     let t1;
-    const obsTime = clock.pipe(operators_3.tap(() => t1 = Date.now()), operators_4.map(() => t1 - t0), operators_3.tap(() => t0 = t1), operators_5.share());
-    return obsTime;
+    return clock.pipe(operators_3.tap(() => t1 = Date.now()), operators_4.map(() => t1 - t0), operators_3.tap(() => t0 = t1), operators_5.share());
 }
 //# sourceMappingURL=mobile-object.spec.js.map

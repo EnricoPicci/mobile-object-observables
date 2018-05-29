@@ -6,12 +6,15 @@ import {ReplaySubject} from 'rxjs';
 
 import { timer } from 'rxjs';
 
-import { tap, skipWhile, distinctUntilChanged } from 'rxjs/operators';
+import { tap, distinctUntilChanged } from 'rxjs/operators';
 import { map } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
 import { share } from 'rxjs/operators';
+import { publishReplay } from 'rxjs/operators';
+import { refCount } from 'rxjs/operators';
 import { take } from 'rxjs/operators';
 import { filter } from 'rxjs/operators';
+import {skipToggle} from 'rxjs-more-operators';
 
 export interface Dynamics { deltaSpace: number; cumulatedSpace: number; acc: number; vel: number; }
 
@@ -45,6 +48,8 @@ export class MobileObject {
   private brakeSubscriptionY: Subscription;
 
   // timeFramesMilliseconds is a sequence of time intervals in milliseconds
+  // it starts emitting when 'turnOnSubject' emits true and stops emitting when 'turnOnSubject' emits false, until the next
+  // true is emitted by 'turnOnSubject'
   // at the end of each timeFrame an instance of 'Dynamics' is emitted by 'deltaSpaceObsX' and'deltaSpaceObsY' observables
   // each event emitted goes with an intance of type 'Dynamics', related to the X and Y axix depending on the Observable
   // the values of the instances of 'Dynamics' are the following
@@ -62,14 +67,20 @@ export class MobileObject {
     this.dynamicsObsX = this.accelerateSubjectX.pipe(
         switchMap(acc => dfX(acc, tFrames)),
         distinctUntilChanged(),
-        share()
+        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+        publishReplay(1),
+        refCount(),
       );
 
     const dfY = this.dynamicsF(initialVelocityY, 0);
     this.dynamicsObsY = this.accelerateSubjectY.pipe(
         switchMap(acc => dfY(acc, tFrames)),
         distinctUntilChanged(),
-        share()
+        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+        publishReplay(1),
+        refCount(),
       );
 
     if (turnOn) {
@@ -79,14 +90,8 @@ export class MobileObject {
 
   // returns an Observable that STOPS emitting when the MobileObject is turned off
   private tFrames(timeFramesMilliseconds?: Observable<number>) {
-    let turnedOn;
     const tF = timeFramesMilliseconds ? timeFramesMilliseconds : this.timeFrames(10);
-    return this.turnOnSubject.pipe(
-        tap(t => turnedOn = t),
-        switchMap(() => tF.pipe(
-            skipWhile(() => !turnedOn)
-        )),
-    )
+    return tF.pipe(skipToggle(this.turnOnSubject))
   }
 
   // higher order function that returns a function that calculates the values related to the dynamics of the object
@@ -170,7 +175,7 @@ export class MobileObject {
             return deltaSpaceObs.pipe(
                 filter(data => Math.abs(data.vel) < VEL_0),
                 tap(() => accObs.next(0)),
-                tap(() => subscription.unsubscribe())
+                take(1)
             );
         })
     ).subscribe();
