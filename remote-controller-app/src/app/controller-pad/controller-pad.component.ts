@@ -43,14 +43,6 @@ export class ControllerPadComponent implements OnInit {
       .subscribe((data: any) => {
         const message = JSON.parse(data);
         console.log('message from server', message);
-        // if (message === MobileObjectInfoMessage.TURNED_ON) {
-        //   this.turnedOn = true;
-        // } else
-        // if (message === MobileObjectInfoMessage.TURNED_OFF) {
-        //   this.turnedOn = false;
-        // } else {
-        //   throw new Error('message not known ' + message);
-        // }
       });
 
     this.socketService.onEvent(Event.CONNECT)

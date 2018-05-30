@@ -30,6 +30,8 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
 
   serverConnected = false;
 
+  imagerotation = 0;
+
   constructor(private socketService: SocketService) { }
 
   ngOnInit(): void {
@@ -48,9 +50,16 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
         tap(message => {
           const dynamicsX = message[0];
           const dynamicsY = message[1];
-          const newPositionX = this.boundSpace(dynamicsX.cumulatedSpace, PLAYGROUND_WIDTH);
+          const newPositionXAndDirection = this.boundSpace(dynamicsX.cumulatedSpace, PLAYGROUND_WIDTH);
+          const newPositionX = newPositionXAndDirection.position;
+          const newDirectionX = newPositionXAndDirection.direction;
           this.mobObjElement.nativeElement.style.left = newPositionX + 'px';
-          const newPositionY = this.boundSpace(dynamicsY.cumulatedSpace, PLAYGROUND_HEIGHT);
+          const newPositionYAndDirection = this.boundSpace(dynamicsY.cumulatedSpace, PLAYGROUND_HEIGHT);
+          const newPositionY = newPositionYAndDirection.position;
+          const newDirectionY = newPositionYAndDirection.direction;
+          const velX = dynamicsX.vel;
+          const velY = dynamicsY.vel;
+          this.imagerotation = Math.atan2(newDirectionY * velY, newDirectionX * velX) * 180 / Math.PI;
           this.mobObjElement.nativeElement.style.top = newPositionY + 'px';
         }),
         throttleTime(100),
@@ -85,11 +94,13 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
 
   boundSpace(space: number, limit: number) {
     let validSpace = space % (limit * 2);
+    let direction = 1;
     validSpace = Math.abs(validSpace);
     if (validSpace > limit) {
       validSpace = limit - (validSpace - limit);
+      direction = -1 * direction;
     }
-    return validSpace;
+    return {position: validSpace, direction};
   }
 
 }
