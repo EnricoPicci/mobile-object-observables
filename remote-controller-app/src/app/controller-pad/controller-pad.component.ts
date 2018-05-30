@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 
 import {SocketService, Event} from '../services/socket-service';
 import {SocketIoService} from '../services/socket-io.service';
+import { Subscription } from 'rxjs/Subscription';
 
 export enum MobileObjectCommand {
   TURN_ON = 'turnOn',
@@ -24,10 +25,14 @@ export enum MobileObjectInfoMessage {
   templateUrl: './controller-pad.component.html',
   styleUrls: ['./controller-pad.component.css']
 })
-export class ControllerPadComponent implements OnInit {
+export class ControllerPadComponent implements OnInit, OnDestroy {
   serverConnected = false;
   turnedOn = false;
   acc = 50;
+
+  private connectSubscription: Subscription;
+  private disconnectSubscription: Subscription;
+  private turnedOnSubscription: Subscription;
 
   constructor(private socketService: SocketService) { }
 
@@ -91,6 +96,12 @@ export class ControllerPadComponent implements OnInit {
   }
   brake() {
     this.sendCommand({action: MobileObjectCommand.BRAKE});
+  }
+
+  ngOnDestroy() {
+    this.connectSubscription.unsubscribe();
+    this.disconnectSubscription.unsubscribe();
+    this.turnedOnSubscription.unsubscribe();
   }
 
 }

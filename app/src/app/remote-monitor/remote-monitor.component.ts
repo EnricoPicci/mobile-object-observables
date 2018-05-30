@@ -6,7 +6,6 @@ import { throttleTime } from 'rxjs/operators';
 import { tap } from 'rxjs/operators';
 import { map } from 'rxjs/operators';
 
-import {MobileObject, Dynamics} from '../mobile-object/mobile-object';
 import {SocketService, Event} from '../services/socket-service';
 import {SocketIoService} from '../services/socket-io.service';
 
@@ -20,8 +19,6 @@ const PLAYGROUND_WIDTH = 500;
 })
 export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mobileobject') mobObjElement: ElementRef;
-  readonly mobileObject: MobileObject;
-  onMessageSubscription: any;
 
   accXViewVal = '0';
   velXViewVal = '0';
@@ -31,6 +28,10 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
   serverConnected = false;
 
   imagerotation = 0;
+
+  private onMessageSubscription: Subscription;
+  private connectSubscription: Subscription;
+  private disconnectSubscription: Subscription;
 
   constructor(private socketService: SocketService) { }
 
@@ -90,6 +91,8 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
 
   ngOnDestroy() {
     this.onMessageSubscription.unsubscribe();
+    this.connectSubscription.unsubscribe();
+    this.disconnectSubscription.unsubscribe();
   }
 
   boundSpace(space: number, limit: number) {
