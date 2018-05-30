@@ -43,8 +43,7 @@ export class MobileObjectServer {
 
     private mobileObject = new MobileObject();
     private throttleTime = 1000;
-
-    // private dynamicsSubscription: Subscription;
+    
     private showDynamicsSubscriptionX: Subscription;
     private showDynamicsSubscriptionY: Subscription;
 
@@ -99,15 +98,10 @@ export class MobileObjectServer {
         socket.on(CONTROLLER_COMMAND, commandMessage => {
             console.log('commandMessage', commandMessage);
             if (commandMessage.action === MobileObjectCommand.TURN_ON) {
-                // this.broadcastDynamicsInfo(socket);
-                // this.sendDynamicsInfo(socket);
-                // this.showDynamics(true);
                 this.mobileObject.turnOn();
                 socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_ON));
             } else
             if (commandMessage.action === MobileObjectCommand.TURN_OFF) {
-                // this.dynamicsSubscription.unsubscribe();
-                // this.showDynamics(false);
                 this.mobileObject.turnOff();
                 socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_OFF));
             } else

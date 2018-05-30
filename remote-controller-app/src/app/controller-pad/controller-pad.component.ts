@@ -25,10 +25,9 @@ export enum MobileObjectInfoMessage {
   styleUrls: ['./controller-pad.component.css']
 })
 export class ControllerPadComponent implements OnInit {
-  ioConnection: any;
-  acc = 50;
   serverConnected = false;
   turnedOn = false;
+  acc = 50;
 
   constructor(private socketService: SocketService) { }
 
@@ -38,12 +37,6 @@ export class ControllerPadComponent implements OnInit {
 
   private initIoConnection(): void {
     this.socketService.initSocket();
-
-    this.ioConnection = this.socketService.onEvent(Event.MESSAGE_TO_CONTROLLER)
-      .subscribe((data: any) => {
-        const message = JSON.parse(data);
-        console.log('message from server', message);
-      });
 
     this.socketService.onEvent(Event.CONNECT)
       .subscribe(() => {
