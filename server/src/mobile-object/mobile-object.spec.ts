@@ -531,7 +531,7 @@ describe('accelerate brake and then pedal up', () => {
         // after 2 seconds release the pedal
         setTimeout(() => mobileObject.pedalUp(), 2000);
         const expectedVelAfter2Sec = acceleration / 2; // deceleration of brake is half of acceleration
-        const s = mobileObject.dynamicsObsX.pipe(combineLatest(mobileObject.dynamicsObsY))
+        const s = mobileObject.dynamicsObs
         .subscribe(
             data => {
                 speedX = data[0].vel;
@@ -540,14 +540,14 @@ describe('accelerate brake and then pedal up', () => {
         );
         setTimeout(() => {
             if (speedX > expectedVelAfter2Sec * 1.1 || speedX < expectedVelAfter2Sec * 0.9) {
-                console.error('speedX not as expected', speedX);
+                console.error('4.1 speedX not as expected', expectedVelAfter2Sec, speedX);
                 done();
-                throw(new Error('speedX not as expected'));
+                throw(new Error('4.1 speedX not as expected'));
             }
             if (speedY > expectedVelAfter2Sec * 1.1 || speedY < expectedVelAfter2Sec * 0.9) {
-                console.error('speedY not as expected', speedY);
+                console.error('4.1 speedY not as expected', expectedVelAfter2Sec, speedY);
                 done();
-                throw(new Error('speedY not as expected'));
+                throw(new Error('4.1 speedY not as expected'));
             }
             s.unsubscribe();
             done();
@@ -900,6 +900,31 @@ describe('turn on and off', () => {
 
 });
 
+describe('check that MobileObject emits only if there is a change in its position', () => {
+
+    it(`7.1 - create a mobile object and do not impress any acceleration 
+        after 1 sec it should have emitted only once since there is no change in its dynamics`, done => {
+        const mobileObject = new MobileObject();
+        mobileObject.turnOn();
+        mobileObject.accelerateX(0);
+        mobileObject.accelerateY(0);
+        let numberOfEmissions = 0;
+        const s = mobileObject.dynamicsObs
+        .subscribe(() => numberOfEmissions++);
+        // after 1 second it shouldhave emitted only once
+        setTimeout(() => {
+            if (numberOfEmissions !== 1) {
+                s.unsubscribe();
+                console.error('7.1 numberOfEmissions not as expected', numberOfEmissions, 1);
+                done();
+                throw(new Error('7.1 numberOfEmissions not as expected'));
+            }
+            s.unsubscribe();
+            done();
+        }, 1000);
+    }).timeout(10000);
+
+});
 
 import { timer } from 'rxjs';
 import { tap } from 'rxjs/operators';

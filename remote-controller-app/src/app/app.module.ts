@@ -3,7 +3,8 @@ import { NgModule } from '@angular/core';
 
 
 import { AppComponent } from './app.component';
-import { ControllerPadComponent } from './controller-pad/controller-pad.component';
+// import { ControllerPadComponent } from './controller-pad/controller-pad.component';
+import { ControllerPadComponent } from './controller-pad/controller-pad-multi.component';
 import {SocketService} from './services/socket-service';
 import {SocketIoService} from './services/socket-io.service';
 import {SocketObsService} from './services/socket-obs.service';

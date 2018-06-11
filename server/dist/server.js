@@ -23,7 +23,6 @@ var MobileObjectInfoMessage;
 })(MobileObjectInfoMessage = exports.MobileObjectInfoMessage || (exports.MobileObjectInfoMessage = {}));
 // Events used by the application
 const CONTROLLER_COMMAND = 'command';
-const MESSAGE_TO_CONTROLLER = 'm2c';
 const DYNAMICS_INFO = 'dynamics';
 const TURNED_ON_INFO = 'turnedOn';
 class MobileObjectServer {
@@ -66,15 +65,13 @@ class MobileObjectServer {
         });
     }
     handleControllerCommands(socket) {
-        socket.on(CONTROLLER_COMMAND, commandMessage => {
+        socket.on(CONTROLLER_COMMAND, (commandMessage) => {
             console.log('commandMessage', commandMessage);
             if (commandMessage.action === MobileObjectCommand.TURN_ON) {
                 this.mobileObject.turnOn();
-                socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_ON));
             }
             else if (commandMessage.action === MobileObjectCommand.TURN_OFF) {
                 this.mobileObject.turnOff();
-                socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_OFF));
             }
             else if (commandMessage.action === MobileObjectCommand.ACCELERATE_X) {
                 this.mobileObject.accelerateX(commandMessage.value);

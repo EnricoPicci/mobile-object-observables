@@ -5,6 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 import {ReplaySubject} from 'rxjs';
 
 import { timer } from 'rxjs';
+import { zip } from 'rxjs';
 
 import { tap, distinctUntilChanged } from 'rxjs/operators';
 import { map } from 'rxjs/operators';
@@ -37,6 +38,7 @@ export class MobileObject {
 
   readonly dynamicsObsX: Observable<Dynamics>;
   readonly dynamicsObsY: Observable<Dynamics>;
+  readonly dynamicsObs: Observable<[Dynamics, Dynamics]>;
 
   private accelerateSubjectX = new BehaviorSubject<number>(0);
   private accelerateSubjectY = new BehaviorSubject<number>(0);
@@ -64,34 +66,65 @@ export class MobileObject {
     const tFrames = this.tFrames(timeFramesMilliseconds);
 
     const dfX = this.dynamicsF(initialVelocityX, 0);
-    this.dynamicsObsX = this.accelerateSubjectX.pipe(
-        switchMap(acc => dfX(acc, tFrames)),
-        distinctUntilChanged(),
-        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
-        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
-        publishReplay(1),
-        refCount(),
-      );
+    // this.dynamicsObsX = this.accelerateSubjectX.pipe(
+    //     switchMap(acc => dfX(acc, tFrames)),
+    //     // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+    //     // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+    //     publishReplay(1),
+    //     refCount(),
+    //   );
+    this.dynamicsObsX = this.dynamicsSharedF(this.accelerateSubjectX, tFrames, dfX);
 
     const dfY = this.dynamicsF(initialVelocityY, 0);
-    this.dynamicsObsY = this.accelerateSubjectY.pipe(
-        switchMap(acc => dfY(acc, tFrames)),
-        distinctUntilChanged(),
-        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
-        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
-        publishReplay(1),
-        refCount(),
-      );
+    // this.dynamicsObsY = this.accelerateSubjectY.pipe(
+    //     switchMap(acc => dfY(acc, tFrames)),
+    //     // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+    //     // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+    //     publishReplay(1),
+    //     refCount(),
+    //   );
+    this.dynamicsObsY = this.dynamicsSharedF(this.accelerateSubjectY, tFrames, dfY);
 
-    if (turnOn) {
+    this.dynamicsObs = this.primDynamicsObs();
+    
+      if (turnOn) {
         this.turnOn();
     }
   }
 
-  // returns an Observable that STOPS emitting when the MobileObject is turned off
-  private tFrames(timeFramesMilliseconds?: Observable<number>) {
-    const tF = timeFramesMilliseconds ? timeFramesMilliseconds : this.timeFrames(10);
-    return tF.pipe(skipToggle(this.turnOnSubject))
+  private primDynamicsObs() {
+    return zip(
+        this.dynamicsObsX,
+        this.dynamicsObsY
+    )
+    .pipe(
+        distinctUntilChanged(
+            (dyn0, dyn1) => dyn0[0].cumulatedSpace === dyn1[0].cumulatedSpace && dyn0[1].cumulatedSpace === dyn1[1].cumulatedSpace
+        ),
+        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+        publishReplay(1),
+        refCount(),
+    )
+  }
+
+  // higher order function that returns a function that calculates the values related to the dynamics of the object
+  private dynamicsSharedF(
+    accObservable: Observable<number>, 
+    timeFramesMilliseconds: Observable<number>, 
+    df: (acc: number, timeFramesMilliseconds: Observable<number>) => Observable<{
+        deltaSpace: number;
+        cumulatedSpace: number;
+        acc: number;
+        vel: number;
+    }>) {
+      return accObservable.pipe(
+        switchMap(acc => df(acc, timeFramesMilliseconds)),
+        // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
+        // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
+        publishReplay(1),
+        refCount(),
+      );;
   }
 
   // higher order function that returns a function that calculates the values related to the dynamics of the object
@@ -112,10 +145,16 @@ export class MobileObject {
                   vel = 0;
                 }
                 return {deltaSpace, cumulatedSpace, acc, vel};
-            })
+            }),
         );
       };
       return df;
+  }
+
+  // returns an Observable that STOPS emitting when the MobileObject is turned off
+  private tFrames(timeFramesMilliseconds?: Observable<number>) {
+    const tF = timeFramesMilliseconds ? timeFramesMilliseconds : this.timeFrames(10);
+    return tF.pipe(skipToggle(this.turnOnSubject))
   }
 
   private timeFrames(frameApproximateLenght: number, numberOfFrames?: number) {

@@ -75,13 +75,13 @@ export class RemoteMonitorComponent implements OnInit, AfterViewInit, OnDestroy 
       )
       .subscribe();
 
-    this.socketService.onEvent(Event.CONNECT)
+    this.connectSubscription = this.socketService.onEvent(Event.CONNECT)
       .subscribe(() => {
         this.serverConnected = true;
         console.log('connected');
       });
 
-    this.socketService.onEvent(Event.DISCONNECT)
+    this.disconnectSubscription = this.socketService.onEvent(Event.DISCONNECT)
       .subscribe(() => {
         this.serverConnected = false;
         console.log('disconnected');

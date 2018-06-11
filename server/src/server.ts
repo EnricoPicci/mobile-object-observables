@@ -4,7 +4,6 @@
 import { createServer, Server } from 'http';
 import * as express from 'express';
 import * as socketIo from 'socket.io';
-// import socketIo from 'socket.io';  THIS IMPORT DOES NOT WORK
 
 import {Subscription} from 'rxjs';
 import {zip} from 'rxjs';
@@ -29,7 +28,6 @@ export enum MobileObjectInfoMessage {
 }
 // Events used by the application
 const CONTROLLER_COMMAND = 'command';
-const MESSAGE_TO_CONTROLLER = 'm2c';
 const DYNAMICS_INFO = 'dynamics';
 const TURNED_ON_INFO = 'turnedOn';
 
@@ -95,15 +93,13 @@ export class MobileObjectServer {
     }
 
     private handleControllerCommands(socket: socketIo.Socket) {
-        socket.on(CONTROLLER_COMMAND, commandMessage => {
+        socket.on(CONTROLLER_COMMAND, (commandMessage: MobileObjectCommandMessage) => {
             console.log('commandMessage', commandMessage);
             if (commandMessage.action === MobileObjectCommand.TURN_ON) {
                 this.mobileObject.turnOn();
-                socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_ON));
             } else
             if (commandMessage.action === MobileObjectCommand.TURN_OFF) {
                 this.mobileObject.turnOff();
-                socket.emit(MESSAGE_TO_CONTROLLER, JSON.stringify(MobileObjectInfoMessage.TURNED_OFF));
             } else
             if (commandMessage.action === MobileObjectCommand.ACCELERATE_X) {
                 this.mobileObject.accelerateX(commandMessage.value);

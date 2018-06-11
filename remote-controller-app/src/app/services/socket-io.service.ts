@@ -26,8 +26,8 @@ export class SocketIoService extends SocketService {
       this.socket.emit(event, message);
   }
 
-  public onEvent(event: Event): Observable<any> {
-      return new Observable<any>(observer => {
+  public onEvent(event): Observable<any> {
+      return new Observable<any>((observer: Observer<any>) => {
           this.socket.on(event, data => observer.next(data));
       });
   }
