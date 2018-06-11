@@ -4,11 +4,6 @@ const rxjs_1 = require("rxjs");
 const rxjs_2 = require("rxjs");
 const socketIoClient = require("socket.io-client");
 const socketIoServer = require("socket.io");
-// export function connectClient(url: string) {
-//     return new Observable<SocketObs>((observer: Observer<SocketObs>) => {
-//                     socketIoClient(url).on('connect', socket => observer.next(new SocketObs(socket)));
-//                 });
-// }
 function connectServer(httpServer, port) {
     httpServer.listen(port, () => {
         console.log('Running server on port %s', port);
@@ -40,6 +35,10 @@ class SocketObs {
             this.socket.on(event, data => observer.next(data));
         });
     }
+    // if an event is listened in too many places we can end up with a problem with the number of listeners
+    // see https://stackoverflow.com/questions/50764953/issue-when-wrapping-socket-with-observables-maxlistenersexceededwarning-possi
+    // in such case we can create a Subject, as instance property of the object, which emits when connect occurs
+    // clients of SocketObs can subscribe to this single Subject and we overcome the listeners number problem
     onDisconnect() {
         return this.disconnect.asObservable();
     }
