@@ -1,15 +1,16 @@
 // these are tests at the boundaries of the Server
 // it assumes a Server is running
+// start server with the command "node ./dist/index"
 
-import { tap } from 'rxjs/operators';
-import { map } from 'rxjs/operators';
+import { tap, delay } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import { take } from 'rxjs/operators';
 import { skip } from 'rxjs/operators';
 import { filter } from 'rxjs/operators';
 
-import {SocketObs} from './socket-io-observable';
-import {Event} from './server-multi-object';
+import {SocketObs} from './socket-obs';
+import {MessageType} from './server-multi-object';
 import {MobileObjectCommand, MobileObjectCommandMessage} from './server-multi-object';
 
 const socketServerUrl = 'http://localhost:8081';
@@ -20,17 +21,17 @@ const socketServerUrl = 'http://localhost:8081';
 
 // Utility functions used in the tests
 const connectControllerToServer = (socketClientObs: SocketObs) => {
-    return socketClientObs.onEvent(Event.CONNECT).pipe(
+    return socketClientObs.onConnect().pipe(
         tap(() => console.log('Controller connected')),
-        tap(() => socketClientObs.send(Event.BIND_CONTROLLER)),
-        switchMap(() => socketClientObs.onEvent(Event.MOBILE_OBJECT)),
+        tap(() => socketClientObs.send(MessageType.BIND_CONTROLLER)),
+        switchMap(() => socketClientObs.onMessageType(MessageType.MOBILE_OBJECT)),
     )
 }
 const connectMonitorToServer = (socketClientObs: SocketObs) => {
-    return socketClientObs.onEvent(Event.CONNECT).pipe(
+    return socketClientObs.onConnect().pipe(
         tap(() => console.log('Monitor connected')),
-        tap(() => socketClientObs.send(Event.BIND_MONITOR)),
-        switchMap(() => socketClientObs.onEvent(Event.MOBILE_OBJECT)),
+        tap(() => socketClientObs.send(MessageType.BIND_MONITOR)),
+        switchMap(() => socketClientObs.onMessageType(MessageType.MOBILE_OBJECT)),
     )
 }
 // =====================================================================================================================
@@ -67,7 +68,7 @@ controllerConnectsToServerTest(socketClientObsTest1);
 const socketClientObsTest2 = new SocketObs(socketServerUrl);
 const mobileObjectNotTurnedOn = (socketClientObs: SocketObs) => {
     return connectControllerToServer(socketClientObs).pipe(
-        switchMap(mobObjId => socketClientObs.onEvent(Event.TURNED_ON + mobObjId)),
+        switchMap(mobObjId => socketClientObs.onMessageType(MessageType.TURNED_ON + mobObjId)),
         map(turnedOn => JSON.parse(turnedOn))
     );
 }
@@ -95,11 +96,11 @@ mobileObjectNotTurnedOnTest(socketClientObsTest2);
 const socketClientObsTest3 = new SocketObs(socketServerUrl);
 const mobileObjectTurnedOn = (socketClientObs: SocketObs) => {
     return connectControllerToServer(socketClientObs).pipe(
-        switchMap(mobObjId => socketClientObs.onEvent(Event.TURNED_ON + mobObjId)),
+        switchMap(mobObjId => socketClientObs.onMessageType(MessageType.TURNED_ON + mobObjId)),
         tap(() => {
             const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
             setTimeout(() => {
-                socketClientObs.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+                socketClientObs.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
             }, 300);
         }),
         map(turnedOn => JSON.parse(turnedOn))
@@ -130,17 +131,17 @@ mobileObjectTurnedOnTest(socketClientObsTest3);
 const socketClientObsTest4 = new SocketObs(socketServerUrl);
 const mobileObjectTurnedOff = (socketClientObs: SocketObs) => {
     return connectControllerToServer(socketClientObs).pipe(        
-        switchMap(mobObjId => socketClientObs.onEvent(Event.TURNED_ON + mobObjId)),
+        switchMap(mobObjId => socketClientObs.onMessageType(MessageType.TURNED_ON + mobObjId)),
         tap(() => {
             const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
             setTimeout(() => {
-                socketClientObs.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+                socketClientObs.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
             }, 400);
         }),
         tap(() => {
             const turnOffCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_OFF};
             setTimeout(() => {
-                socketClientObs.send(Event.CONTROLLER_COMMAND, turnOffCommand)
+                socketClientObs.send(MessageType.CONTROLLER_COMMAND, turnOffCommand)
             }, 410);
         }),
         map(turnedOn => JSON.parse(turnedOn))
@@ -180,24 +181,24 @@ const socketClientObs_2_Test5 = new SocketObs(socketServerUrl);
 const mobileObject_1_Test5 = (socketClientObs: SocketObs) => {
     setTimeout(() => {
         const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
-        socketClientObs.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+        socketClientObs.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
     }, 500);
     setTimeout(() => {
         const turnOffCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_OFF};
-        socketClientObs.send(Event.CONTROLLER_COMMAND, turnOffCommand)
+        socketClientObs.send(MessageType.CONTROLLER_COMMAND, turnOffCommand)
     }, 510);
     return connectControllerToServer(socketClientObs).pipe(
-        switchMap(mobObjId => socketClientObs.onEvent(Event.TURNED_ON + mobObjId)),
+        switchMap(mobObjId => socketClientObs.onMessageType(MessageType.TURNED_ON + mobObjId)),
         map(turnedOn => JSON.parse(turnedOn))
     );
 }
 const mobileObject_2_Test5 = (socketClientObs: SocketObs) => {
     setTimeout(() => {
         const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
-        socketClientObs.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+        socketClientObs.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
     }, 510);
     return connectControllerToServer(socketClientObs).pipe(
-        switchMap(mobObjId => socketClientObs.onEvent(Event.TURNED_ON + mobObjId)),
+        switchMap(mobObjId => socketClientObs.onMessageType(MessageType.TURNED_ON + mobObjId)),
         map(turnedOn => JSON.parse(turnedOn))
     );
 }
@@ -242,11 +243,11 @@ let mobObjId_2_Test7;
 const controller_1_Test7 = (socketController: SocketObs) => {
     setTimeout(() => {
         const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
-        socketController.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
     }, 700);
     setTimeout(() => {
         const accelerateCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.ACCELERATE_X, value: 100};
-        socketController.send(Event.CONTROLLER_COMMAND, accelerateCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, accelerateCommand)
     }, 710);
     connectControllerToServer(socketController).pipe(
         tap(id => mobObjId_1_Test7 = id)
@@ -256,11 +257,11 @@ const controller_1_Test7 = (socketController: SocketObs) => {
 const controller_2_Test7 = (socketController: SocketObs) => {
     setTimeout(() => {
         const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
-        socketController.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
     }, 700);
     setTimeout(() => {
         const accelerateCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.ACCELERATE_X, value: -100};
-        socketController.send(Event.CONTROLLER_COMMAND, accelerateCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, accelerateCommand)
     }, 710);
     connectControllerToServer(socketController).pipe(
         tap(id => mobObjId_2_Test7 = id)
@@ -276,7 +277,7 @@ const twoMobileObjectsWithMonitorTest = (socketController_1: SocketObs, socketCo
     monitorConnection
     .pipe(
         filter(id => id === mobObjId_1_Test7), // take the first MobileObject, i.e. the one with positive acceleration
-        switchMap(mobObjId => socketMonitor.onEvent(Event.DYNAMICS_INFO + mobObjId)),
+        switchMap(mobObjId => socketMonitor.onMessageType(MessageType.DYNAMICS_INFO + mobObjId)),
         map(dynamics => JSON.parse(dynamics)),
         map(dynamics => dynamics[0]) // take the X axis
     )
@@ -286,7 +287,7 @@ const twoMobileObjectsWithMonitorTest = (socketController_1: SocketObs, socketCo
     monitorConnection
     .pipe(
         filter(id => id === mobObjId_2_Test7), // take the second MobileObject, i.e. the one with negative acceleration
-        switchMap(mobObjId => socketMonitor.onEvent(Event.DYNAMICS_INFO + mobObjId)),
+        switchMap(mobObjId => socketMonitor.onMessageType(MessageType.DYNAMICS_INFO + mobObjId)),
         map(dynamics => JSON.parse(dynamics)),
         map(dynamics => dynamics[0]) // take the X axis
     )
@@ -327,15 +328,15 @@ let mobObjId_Test9;
 const controller_Test9 = (socketController: SocketObs) => {
     setTimeout(() => {
         const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
-        socketController.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
     }, 900);
     setTimeout(() => {
         const accelerateCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.ACCELERATE_X, value: 100};
-        socketController.send(Event.CONTROLLER_COMMAND, accelerateCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, accelerateCommand)
     }, 901);
     setTimeout(() => {
         const brakeCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.BRAKE};
-        socketController.send(Event.CONTROLLER_COMMAND, brakeCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, brakeCommand)
     }, 950);
     connectControllerToServer(socketController).pipe(
         tap(id => mobObjId_Test9 = id)
@@ -350,7 +351,7 @@ const mobileObjectBrakesWithMonitorTest = (socketController: SocketObs, socketMo
         monitorConnection
         .pipe(
             filter(id => id === mobObjId_Test9), // take the MobileObject created for this test
-            switchMap(mobObjId => socketMonitor.onEvent(Event.DYNAMICS_INFO + mobObjId)),
+            switchMap(mobObjId => socketMonitor.onMessageType(MessageType.DYNAMICS_INFO + mobObjId)),
             map(dynamics => JSON.parse(dynamics)),
             map(dynamics => dynamics[0]) // take the X axis
         )
@@ -396,15 +397,15 @@ let mobObjId_Test10;
 const controller_Test10 = (socketController: SocketObs) => {
     setTimeout(() => {
         const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
-        socketController.send(Event.CONTROLLER_COMMAND, turnOnCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, turnOnCommand)
     }, 1000);
     setTimeout(() => {
         const accelerateCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.ACCELERATE_X, value: 100};
-        socketController.send(Event.CONTROLLER_COMMAND, accelerateCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, accelerateCommand)
     }, 1001);
     setTimeout(() => {
         const brakeCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.BRAKE};
-        socketController.send(Event.CONTROLLER_COMMAND, brakeCommand)
+        socketController.send(MessageType.CONTROLLER_COMMAND, brakeCommand)
     }, 1050);
     connectControllerToServer(socketController).pipe(
         tap(id => mobObjId_Test10 = id)
@@ -417,7 +418,7 @@ const monitorConnectsAndThenControllerTest = (socketController: SocketObs, socke
     monitorConnection
     .pipe(
         filter(id => id === mobObjId_Test10), // take the MobileObject created for this test
-        switchMap(mobObjId => socketMonitor.onEvent(Event.DYNAMICS_INFO + mobObjId)),
+        switchMap(mobObjId => socketMonitor.onMessageType(MessageType.DYNAMICS_INFO + mobObjId)),
         map(dynamics => JSON.parse(dynamics)),
         map(dynamics => dynamics[0]) // take the X axis
     )
@@ -466,7 +467,7 @@ let mobObjId_Test11;
 const controller_Test11 = (socketController: SocketObs) => {
     setTimeout(() => {
         const turnOnCommand: MobileObjectCommandMessage = {action: MobileObjectCommand.TURN_ON};
-        socketController.send(Event.CONTROLLER_COMMAND, turnOnCommand);
+        socketController.send(MessageType.CONTROLLER_COMMAND, turnOnCommand);
     }, 1100);
     setTimeout(() => {
         socketController.close();
@@ -482,7 +483,7 @@ const controllerDisconnectsAndMonitorIsNotifiedTest = (socketController: SocketO
     monitorConnection
     .pipe(
         filter(id => id === mobObjId_Test11), // take the MobileObject created for this test
-        switchMap(_mobObjId => socketMonitor.onEvent(Event.MOBILE_OBJECT_REMOVED + mobObjId_Test11)),
+        switchMap(_mobObjId => socketMonitor.onMessageType(MessageType.MOBILE_OBJECT_REMOVED + mobObjId_Test11)),
     )
     .subscribe(
         mobObjId => mobObjRemovedId = mobObjId,
@@ -504,3 +505,74 @@ const controllerDisconnectsAndMonitorIsNotifiedTest = (socketController: SocketO
     }, 2150);
 }
 controllerDisconnectsAndMonitorIsNotifiedTest(socket_Controller_Test11, socket_Monitor_Test11)
+
+
+
+
+
+// TEST 12
+// One Controller connects to the Server and creates a MobileObject and then connects again over the same socket
+// sending a second BIND_CONTROLLER message
+const socket_Controller_Test12 = new SocketObs(socketServerUrl);
+const controllerConnectsTwiceOverTheSameSocketTest = (socketController: SocketObs) => {
+    const controllerConnection = socketController
+                                .onConnect()
+                                .pipe(switchMap(() => socketController.onMessageType(MessageType.MOBILE_OBJECT)));
+    socketController.onConnect()
+    .pipe(
+        tap(() => console.log('TEST 12 - Controller send BIND CONTROLLER messages')),
+        tap(() => socketController.send(MessageType.BIND_CONTROLLER)),
+        delay(200),
+        tap(() => socketController.send(MessageType.BIND_CONTROLLER)),
+    )
+    .subscribe();
+
+    let mobObjId_counter = 0;
+    controllerConnection
+    .subscribe(
+        () => mobObjId_counter++,
+    );
+    setTimeout(() => {
+        if (mobObjId_counter !== 1) {
+            console.error('TEST 12 - we should have received just 1 mobileObjectId');
+        } else {
+            console.log('TEST 12 passed')
+        }
+        socketController.close();
+    }, 2250);
+}
+controllerConnectsTwiceOverTheSameSocketTest(socket_Controller_Test12)
+
+
+// TEST 13
+// One Controller connects to the Server as Controller sending a BIND_CONTROLLER message
+// and then connects again as Monitor over the same socket sending a second BIND_MONITOR message
+const socket_Controller_Test13 = new SocketObs(socketServerUrl);
+const connnectFirstAsControllerAndThenAsServerOverTheSameSocketTest = (socket: SocketObs) => {
+    const connection = socket
+                        .onConnect()
+                        .pipe(switchMap(() => socket.onMessageType(MessageType.MOBILE_OBJECT)));
+    socket.onConnect()
+    .pipe(
+        tap(() => console.log('TEST 13 - send BIND CONTROLLER message and then BIND_MONITOR message')),
+        tap(() => socket.send(MessageType.BIND_CONTROLLER)),
+        delay(200),
+        tap(() => socket.send(MessageType.BIND_MONITOR)),
+    )
+    .subscribe();
+
+    let messagesReceived_counter = 0;
+    connection
+    .subscribe(
+        () => messagesReceived_counter++,
+    );
+    setTimeout(() => {
+        if (messagesReceived_counter !== 1) {
+            console.error('TEST 13 - we should have received just 1 message');
+        } else {
+            console.log('TEST 13 passed')
+        }
+        socket.close();
+    }, 2300);
+}
+connnectFirstAsControllerAndThenAsServerOverTheSameSocketTest(socket_Controller_Test13)

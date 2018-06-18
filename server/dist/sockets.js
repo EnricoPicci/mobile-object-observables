@@ -15,4 +15,4 @@ function sockets(httpServer, port) {
     });
 }
 exports.sockets = sockets;
-//# sourceMappingURL=socket-io-observable.js.map
+//# sourceMappingURL=sockets.js.map

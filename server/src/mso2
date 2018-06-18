@@ -1,7 +1,9 @@
+
 // https://medium.com/dailyjs/real-time-apps-with-typescript-integrating-web-sockets-node-angular-e2b57cbd1ec1?t=1&cn=ZmxleGlibGVfcmVjcw%3D%3D&refsrc=email&iid=9b197a27b4a14948b1d2fd4ad999e0a1&uid=39235406&nid=244%20276893704
 
-import {Observable} from 'rxjs';
-import {from} from 'rxjs';
+import * as express from 'express';
+
+import {Observable, from} from 'rxjs';
 import {merge} from 'rxjs';
 import {race} from 'rxjs';
 import {Subject} from 'rxjs';
@@ -35,7 +37,6 @@ export enum MessageType {
     BIND_CONTROLLER = 'bind-controller',
     CONTROLLER_COMMAND = 'command',
     // Outbound Messages sent to Monitor
-    MONITOR = 'monitor',
     MOBILE_OBJECT = 'mobobj',
     MOBILE_OBJECT_REMOVED = 'mobobj-removed',
     DYNAMICS_INFO = 'dynamics',
@@ -44,6 +45,11 @@ export enum MessageType {
 }
 
 export class MobileObjectServer {
+    public static readonly PORT = 8081;
+
+    private app: express.Application;
+    private port: string | number;
+
     private mobileObjects = new Map<string, MobileObject>();
     private mobileObjectCounter = 1;
     private monitorCounter = 1;
@@ -55,16 +61,11 @@ export class MobileObjectServer {
 
     public start(ISocketObservable: Observable<ISocketObs>) {
         ISocketObservable.pipe(
-            tap(() => console.log('Connected client.')),
+            tap(() => console.log('Connected client on port %s.', this.port)),
             mergeMap(socket =>
                 // on one socket we can receive either one BIND_MONITOR or one BIND_CONTROLLER message
                 // therefore we can use race method to make sure that if one type of message of one time arrives
                 // we ignore potential subsequent messages of the other type
-                // We can not execute the logic for Monitor and Controller within the race in order to avoid the following problem
-                // https://stackoverflow.com/questions/50911412/rxjs-race-function-make-sure-that-the-first-to-occur-wins/50913418#50913418
-                // Therefore rather than using mergeMap within the race processing, we return a the function to be used by merge map
-                // (function which depends on the socket being for a Controller or a Monitor) and then execute it within mergeMap
-                // in a pipe we attach to race
                 race(
                     socket.onMessageType(MessageType.BIND_MONITOR)
                     .pipe(
@@ -72,10 +73,7 @@ export class MobileObjectServer {
                         // make sure that the subscription is completed after the first message
                         // we can not receive more than one BIND_MONITOR message on the same socket
                         take(1),
-                        // rather than having mergeMap(() => this.handleMonitorObs(socket))
-                        // we return a function with merge and than execute that function with mergeMap subsequently
-                        // mergeMap(() => this.handleMonitorObs(socket)),
-                        map(() => (socket) => this.handleMonitorObs(socket)),
+                        mergeMap(() => this.handleMonitorObs(socket)),
                         finalize(() => console.log('BIND_MONITOR subscription completed')),
                     ),
                     socket.onMessageType(MessageType.BIND_CONTROLLER)
@@ -84,26 +82,18 @@ export class MobileObjectServer {
                         // make sure that the subscription is completed after the first message
                         // we can not receive more than one BIND_CONTROLLER message on the same socket
                         take(1),
-                        // rather than having mergeMap(() => this.handleControllerObs(socket))
-                        // we return a function with merge and than execute that function with mergeMap subsequently
-                        // mergeMap(() => this.handleControllerObs(socket)),
-                        map(() => (socket) => this.handleControllerObs(socket)),
+                        mergeMap(() => this.handleControllerObs(socket)),
                         finalize(() => console.log('BIND_CONTROLLER subscription completed')),
                     ),
-                )
-                .pipe(
-                    mergeMap(handler => handler(socket)) 
                 )
             )
         ).subscribe(null, console.error, () => console.log('Socket Server stopped'));
     }
-    
 
     private handleMonitorObs(socket: ISocketObs) {
         const monitorId = 'Monitor' + this.monitorCounter;
         this.monitorCounter++;
         console.log('Monitor bound', monitorId);
-        socket.send(MessageType.MONITOR, monitorId);
 
         const mobObjAdded = merge(
             from(this.mobileObjects).pipe(map(([mobObjId, mobObj]) => ({mobObj, mobObjId}))),
@@ -226,6 +216,10 @@ export class MobileObjectServer {
     // the socket can either between the server and the controller of the MobileObject or between the server and the Monitor
     private stopSendDynamicsInfo(socket: ISocketObs, mobObjId: string) {
         return merge(this.mobileObjectRemoved.pipe(filter(id => id === mobObjId)), socket.onDisconnect());
+    }
+
+    public getApp(): express.Application {
+        return this.app;
     }
 
     // added to allow tests

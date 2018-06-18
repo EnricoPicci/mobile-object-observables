@@ -1,7 +1,6 @@
 "use strict";
 // these are tests at the boundaries of the Server
 // it assumes a Server is running
-// start server with the command "node ./dist/index"
 Object.defineProperty(exports, "__esModule", { value: true });
 const operators_1 = require("rxjs/operators");
 const operators_2 = require("rxjs/operators");
@@ -438,7 +437,7 @@ const controllerConnectsTwiceOverTheSameSocketTest = (socketController) => {
 };
 controllerConnectsTwiceOverTheSameSocketTest(socket_Controller_Test12);
 // TEST 13
-// One Controller connects to the Server as Controller sending a BIND_CONTROLLER message
+// One Controller connects to the Server as Controller sending a second BIND_CONTROLLER message
 // and then connects again as Monitor over the same socket sending a second BIND_MONITOR message
 const socket_Controller_Test13 = new socket_obs_1.SocketObs(socketServerUrl);
 const connnectFirstAsControllerAndThenAsServerOverTheSameSocketTest = (socket) => {
@@ -462,4 +461,4 @@ const connnectFirstAsControllerAndThenAsServerOverTheSameSocketTest = (socket) =
     }, 2300);
 };
 connnectFirstAsControllerAndThenAsServerOverTheSameSocketTest(socket_Controller_Test13);
-//# sourceMappingURL=server-multi-object.test.js.map
+//# sourceMappingURL=server-multi-object.socket.test.js.map
