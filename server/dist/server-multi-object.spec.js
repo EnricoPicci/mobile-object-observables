@@ -5,8 +5,6 @@ const rxjs_1 = require("rxjs");
 const server_multi_object_1 = require("./server-multi-object");
 const socket_obs_test_1 = require("./socket-obs.test");
 const operators_1 = require("rxjs/operators");
-// import {MessageType} from './server-multi-object';
-// import {MobileObjectCommand} from './server-multi-object';
 const server_multi_object_2 = require("./server-multi-object");
 describe('0 - lifecycle of a Controller', () => {
     it(`0.1 - connect a Controller to a MobileObjectServer and check that 1 MobileObject has been created and that it is turned off

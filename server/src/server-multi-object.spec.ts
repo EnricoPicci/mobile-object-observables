@@ -9,9 +9,6 @@ import {ISocketObs} from './socket-obs.interface';
 import {socketConnected} from './socket-obs.test';
 import { take } from 'rxjs/operators';
 
-// import {MessageType} from './server-multi-object';
-
-// import {MobileObjectCommand} from './server-multi-object';
 import {MobileObjectCommand, MobileObjectCommandMessage} from './server-multi-object';
 
 

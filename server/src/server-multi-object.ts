@@ -53,8 +53,8 @@ export class MobileObjectServer {
 
     constructor() {}
 
-    public start(ISocketObservable: Observable<ISocketObs>) {
-        ISocketObservable.pipe(
+    public start(socketObs: Observable<ISocketObs>) {
+        socketObs.pipe(
             tap(() => console.log('Connected client.')),
             mergeMap(socket =>
                 // on one socket we can receive either one BIND_MONITOR or one BIND_CONTROLLER message
@@ -75,7 +75,7 @@ export class MobileObjectServer {
                         // rather than having mergeMap(() => this.handleMonitorObs(socket))
                         // we return a function with merge and than execute that function with mergeMap subsequently
                         // mergeMap(() => this.handleMonitorObs(socket)),
-                        map(() => (socket) => this.handleMonitorObs(socket)),
+                        map(() => (socketObs: ISocketObs) => this.handleMonitorObs(socketObs)),
                         finalize(() => console.log('BIND_MONITOR subscription completed')),
                     ),
                     socket.onMessageType(MessageType.BIND_CONTROLLER)
@@ -87,7 +87,7 @@ export class MobileObjectServer {
                         // rather than having mergeMap(() => this.handleControllerObs(socket))
                         // we return a function with merge and than execute that function with mergeMap subsequently
                         // mergeMap(() => this.handleControllerObs(socket)),
-                        map(() => (socket) => this.handleControllerObs(socket)),
+                        map(() => (socketObs: ISocketObs) => this.handleControllerObs(socketObs)),
                         finalize(() => console.log('BIND_CONTROLLER subscription completed')),
                     ),
                 )
