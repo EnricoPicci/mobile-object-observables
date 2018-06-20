@@ -1,7 +1,7 @@
 # Mobile Object Server, Controller and Monitor
 
 ## This is the code that implements what has been described in this article
-https://medium.freecodecamp.org/thinking-reactively-how-to-animate-with-movement-objects-using-rxjs-692518b6f2ac
+https://medium.com/@enrico.piccinin/reactive-thinking-how-to-design-a-distributed-system-with-rxjs-websockets-and-node-57d772f89260
 
 
 ## Server
