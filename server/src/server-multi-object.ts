@@ -5,7 +5,6 @@ import {from} from 'rxjs';
 import {merge} from 'rxjs';
 import {race} from 'rxjs';
 import {Subject} from 'rxjs';
-import { MobileObject } from './mobile-object/mobile-object';
 import { tap } from 'rxjs/operators';
 import { map } from 'rxjs/operators';
 import { finalize } from 'rxjs/operators';
@@ -14,6 +13,7 @@ import { filter } from 'rxjs/operators';
 import { takeUntil } from 'rxjs/operators';
 import { take } from 'rxjs/operators';
 
+import { MobileObject } from './mobile-object/mobile-object';
 import {ISocketObs} from './socket-obs.interface';
 
 export enum MobileObjectCommand {
@@ -72,11 +72,9 @@ export class MobileObjectServer {
                         // make sure that the subscription is completed after the first message
                         // we can not receive more than one BIND_MONITOR message on the same socket
                         take(1),
-                        // rather than having mergeMap(() => this.handleMonitorObs(socket))
-                        // we return a function with merge and than execute that function with mergeMap subsequently
-                        // mergeMap(() => this.handleMonitorObs(socket)),
-                        map(() => (socketObs: ISocketObs) => this.handleMonitorObs(socketObs)),
                         finalize(() => console.log('BIND_MONITOR subscription completed')),
+                        // we return a function via mpa operator and than execute that function with mergeMap subsequently
+                        map(() => (socketObs: ISocketObs) => this.handleMonitorObs(socketObs)),
                     ),
                     socket.onMessageType(MessageType.BIND_CONTROLLER)
                     .pipe(
@@ -84,22 +82,27 @@ export class MobileObjectServer {
                         // make sure that the subscription is completed after the first message
                         // we can not receive more than one BIND_CONTROLLER message on the same socket
                         take(1),
-                        // rather than having mergeMap(() => this.handleControllerObs(socket))
-                        // we return a function with merge and than execute that function with mergeMap subsequently
-                        // mergeMap(() => this.handleControllerObs(socket)),
-                        map(() => (socketObs: ISocketObs) => this.handleControllerObs(socketObs)),
                         finalize(() => console.log('BIND_CONTROLLER subscription completed')),
+                        // we return a function via mpa operator and than execute that function with mergeMap subsequently
+                        map(() => (socketObs: ISocketObs) => this.handleControllerObs(socketObs)),
                     ),
                 )
                 .pipe(
                     mergeMap(handler => handler(socket)) 
                 )
             )
-        ).subscribe(null, console.error, () => console.log('Socket Server stopped'));
+        )
+        .subscribe();
     }
     
 
-    private handleMonitorObs(socket: ISocketObs) {
+    // It is important to explicitely state that the return is of type Observable<any>, i.e. a more generic return
+    // then what TypeScript would be able to get using inference
+    // The reason is that this function/method is returned from within the race condition of the 'start' method
+    // Similarly also 'handleControllerObs' function/method is returned
+    // 'handleControllerObs' and 'handleControllerObs' do not return the same, unless we force it adding explicitely the return
+    // If they do not return the same, TypeScript complains since they are used as input for the same 'mergeMap' function
+    private handleMonitorObs(socket: ISocketObs): Observable<any> {
         const monitorId = 'Monitor' + this.monitorCounter;
         this.monitorCounter++;
         console.log('Monitor bound', monitorId);
@@ -112,12 +115,7 @@ export class MobileObjectServer {
         .pipe(
             tap(mobObjInfo => console.log('handleMonitor mobileObject added ' + mobObjInfo.mobObjId + ' - Monitor: ' + monitorId)),
             tap(mobObjInfo => socket.send(MessageType.MOBILE_OBJECT, mobObjInfo.mobObjId)),
-            mergeMap(
-                mobObjInfo => this.handleDynamicsObs(
-                                    socket, mobObjInfo.mobObj, mobObjInfo.mobObjId, monitorId,
-                                    this.stopSendDynamicsInfo(socket, mobObjInfo.mobObjId),
-                            )
-            ),
+            mergeMap(mobObjInfo => this.handleDynamicsObs(socket, mobObjInfo.mobObj, mobObjInfo.mobObjId, monitorId)),
             finalize(() => console.log('Socket disconnected - Adding mobile objects completed for Monitor: ', monitorId)),
         );
 
@@ -128,20 +126,27 @@ export class MobileObjectServer {
             finalize(() => console.log('Socket disconnected - Removing mobile objects completed for Monitor: ', monitorId)),
         );
 
-        return merge(mobObjAdded, mobObjRemoved).pipe(takeUntil(socket.onDisconnect()));
+        const monitorDisconnected = socket.onDisconnect();
+
+        return merge(mobObjAdded, mobObjRemoved).pipe(takeUntil(monitorDisconnected));
     }
 
-    private handleDynamicsObs(socket: ISocketObs, mobObj: MobileObject, mobObjId: string, monitorId: string,
-                                    stopSend: Observable<any>,) {
+    private handleDynamicsObs(socket: ISocketObs, mobObj: MobileObject, mobObjId: string, monitorId: string) {
         return mobObj.dynamicsObs
         .pipe(
             tap(data => socket.send(MessageType.DYNAMICS_INFO + mobObjId, JSON.stringify(data))),
-            takeUntil(stopSend),
-            finalize(() => console.log('sendDynamicsInfo completed', mobObjId, monitorId))
+            takeUntil(this.stopSendDynamicsForMobileObject(socket, mobObjId)),
+            finalize(() => console.log('handleDynamicsObs completed', mobObjId, monitorId))
         );
     }
 
-    private handleControllerObs(socket: ISocketObs) {
+    // It is important to explicitely state that the return is of type Observable<any>, i.e. a more generic return
+    // then what TypeScript would be able to get using inference
+    // The reason is that this function/method is returned from within the race condition of the 'start' method
+    // Similarly also 'handleControllerObs' function/method is returned
+    // 'handleControllerObs' and 'handleControllerObs' do not return the same, unless we force it adding explicitely the return
+    // If they do not return the same, TypeScript complains since they are used as input for the same 'mergeMap' function
+    private handleControllerObs(socket: ISocketObs): Observable<any> {
         const mobObjId =  'MobObj' + this.mobileObjectCounter;
         this.mobileObjectCounter++;
         const mobObj = new MobileObject();
@@ -160,7 +165,7 @@ export class MobileObjectServer {
 
         const turnOn = this.sendTurnedOnInfoObs(socket, mobObj, mobObjId);
 
-        const disconnect = socket.onDisconnect()
+        const controllerDisconnected = socket.onDisconnect()
         .pipe(
             tap(() => console.log('Controller disconnected ' + mobObjId)),
             tap(() => this.mobileObjects.delete(mobObjId)),
@@ -173,9 +178,10 @@ export class MobileObjectServer {
                 // we are using a property of the class MobileObjectServer
                 () => this.mobileObjectRemoved.next(mobObjId)
             ),
+            finalize(() => console.log('onDisconnect for Controller socket completed'))
         );
 
-        return merge(commands, turnOn, disconnect);
+        return merge(commands, turnOn).pipe(takeUntil(controllerDisconnected));
     }
 
     private handleControllerCommandsObs(socket: ISocketObs, mobObj: MobileObject, mobObjId: string) {
@@ -208,7 +214,6 @@ export class MobileObjectServer {
                     }
                 }
             ),
-            takeUntil(socket.onDisconnect()),
             finalize(() => console.log('handleControllerCommandsObs completed', mobObjId))
         );
     }
@@ -217,14 +222,13 @@ export class MobileObjectServer {
         return mobObj.isTurnedOnObs.pipe(
             tap(isOn => console.log('MobObj: ' + mobObjId + 'isTurnedOnObs: ' + isOn)),
             tap(isOn => socket.send(MessageType.TURNED_ON + mobObjId, JSON.stringify(isOn))),
-            takeUntil(socket.onDisconnect()),
             finalize(() => console.log('sendTurnedOnInfo completed', mobObjId))
         );
     }
 
     // stream of dynamics data should be stopped if either the MobileObject is removed or if the socket is disconnected
     // the socket can either between the server and the controller of the MobileObject or between the server and the Monitor
-    private stopSendDynamicsInfo(socket: ISocketObs, mobObjId: string) {
+    private stopSendDynamicsForMobileObject(socket: ISocketObs, mobObjId: string) {
         return merge(this.mobileObjectRemoved.pipe(filter(id => id === mobObjId)), socket.onDisconnect());
     }
 
