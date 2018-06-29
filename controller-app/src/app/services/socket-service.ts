@@ -35,4 +35,5 @@ export abstract class SocketService {
     abstract initSocket();
     abstract send(event, data?);
     abstract onEvent(event): Observable<any>;
+    abstract close();
 }

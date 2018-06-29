@@ -32,4 +32,8 @@ export class SocketIoService extends SocketService {
       });
   }
 
+  public close() {
+      this.socket.close();
+  }
+
 }

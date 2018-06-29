@@ -25,5 +25,8 @@ export class SocketObsService extends SocketService {
   onEvent(event: Event): Observable<Event> {
     return this.socket$.asObservable();
   }
+  close() {
+    this.socket$.complete();
+  }
 
 }

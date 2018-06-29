@@ -7,27 +7,37 @@
     <img width="50" src="../../assets/turn-off.jpg" (click)="turnOff()">
   </div>
 
-  <div style="position: absolute; top: 100px; left: 100px" class="rotate180">
-    <img width="50" src="../../assets/arrow-button.png" (mousedown)="leftAcc()" (mouseup)="stopAccX()">
+  <!-- <div style="position: absolute; top: 100px; left: 100px" class="rotate180">
+    <img width="50" src="../../assets/arrow-button.png" 
+    (mousedown)="leftAcc()" (mouseup)="stopAccX()"
+    (touchstart)="leftAcc()" (touchend)="stopAccX()">
   </div>
 
   <div style="position: absolute; top: 100px; left: 200px" class="rotate0">
-    <img width="50" src="../../assets/arrow-button.png" (mousedown)="rightAcc()" (mouseup)="stopAccX()">
+    <img width="50" src="../../assets/arrow-button.png" 
+    (mousedown)="rightAcc()" (mouseup)="stopAccX()"
+    (touchstart)="rightAcc()" (touchend)="stopAccX()">
   </div>
 
   <div style="position: absolute; top: 100px; left: 300px" class="rotate90">
-    <img width="50" src="../../assets/arrow-button.png" (mousedown)="downAcc()" (mouseup)="stopAccY()">
+    <img width="50" src="../../assets/arrow-button.png" 
+      (mousedown)="downAcc()" (mouseup)="stopAccY()"
+      (touchstart)="downAcc()" (touchend)="stopAccY()">
   </div>
 
   <div style="position: absolute; top: 100px; left: 400px" class="rotate270">
-    <img width="50" src="../../assets/arrow-button.png" (mousedown)="upAcc()" (mouseup)="stopAccY()">
-  </div>
+    <img width="50" src="../../assets/arrow-button.png" 
+      (mousedown)="upAcc()" (mouseup)="stopAccY()"
+      (touchstart)="upAcc()" (touchend)="stopAccY()">
+  </div> -->
 
-  <div style="position: absolute; top: 100px; left: 500px" class="rotate0">
+  <ng-nipple [position]="{left: '230px', top: '200px'}" #nipple></ng-nipple>
+
+  <div style="position: absolute; top: 50px; left: 300px" class="rotate0">
     <img width="50" src="../../assets/brake.png" (click)="brake()">
   </div>
 
-  <div *ngIf="!serverConnected" style="position: absolute; top: 200px; left: 100px">
+  <div *ngIf="!serverConnected" style="position: absolute; top: 270px; left: 100px">
     <span>Server not connected</span>
   </div>
 

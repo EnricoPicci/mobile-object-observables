@@ -28,10 +28,10 @@ const PLAYGROUND_WIDTH = 500;
 export class RemoteMonitorMultiComponent implements OnInit, AfterViewInit {
   @ViewChild('container') container: ElementRef;
 
-//   accXViewVal = '0';
-//   velXViewVal = '0';
-//   accYViewVal = '0';
-//   velYViewVal = '0';
+  accXViewVal = '0';
+  velXViewVal = '0';
+  accYViewVal = '0';
+  velYViewVal = '0';
 
   serverConnected = false;
 
@@ -133,15 +133,15 @@ private manageIoConnection(): void {
             newCarIconComponent.position = {left: newPositionX, top: newPositionY};
             newCarIconComponent.imagerotation = Math.atan2(newDirectionY * velY, newDirectionX * velX) * 180 / Math.PI;
         }),
-        // throttleTime(100),
-        // tap(message => {
-        //     const dynamicsX = message[0];
-        //     const dynamicsY = message[1];
-        //     this.accXViewVal = dynamicsX.acc.toFixed(1);
-        //     this.velXViewVal = dynamicsX.vel.toFixed(1);
-        //     this.accYViewVal = dynamicsY.acc.toFixed(1);
-        //     this.velYViewVal = dynamicsY.vel.toFixed(1);
-        // }),
+        throttleTime(100),
+        tap(message => {
+            const dynamicsX = message[0];
+            const dynamicsY = message[1];
+            this.accXViewVal = dynamicsX.acc.toFixed(1);
+            this.velXViewVal = dynamicsX.vel.toFixed(1);
+            this.accYViewVal = dynamicsY.acc.toFixed(1);
+            this.velYViewVal = dynamicsY.vel.toFixed(1);
+        }),
         // completes the stream when either the MobileObject is removed or the connection has stopped
         takeUntil(mobObjRemoved.pipe(merge(this.socketService.onEvent(Event.DISCONNECT))))
     )

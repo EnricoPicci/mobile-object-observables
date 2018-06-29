@@ -54,6 +54,8 @@ class MobileObjectServer {
         // Therefore rather than using mergeMap within the race processing, we return a the function to be used by merge map
         // (function which depends on the socket being for a Controller or a Monitor) and then execute it within mergeMap
         // in a pipe we attach to race
+        // The generic of 'race' is declared because of this 
+        // https://stackoverflow.com/questions/51013202/race-function-raising-typescript-exception-even-if-it-works-perfectly?noredirect=1#comment89023053_51013202
         rxjs_3.race(socket.onMessageType(MessageType.BIND_MONITOR)
             .pipe(operators_1.tap(() => console.log('BIND_MONITOR message received')), 
         // make sure that the subscription is completed after the first message
@@ -70,12 +72,6 @@ class MobileObjectServer {
             .pipe(operators_4.mergeMap(handler => handler(socket)))))
             .subscribe();
     }
-    // It is important to explicitely state that the return is of type Observable<any>, i.e. a more generic return
-    // then what TypeScript would be able to get using inference
-    // The reason is that this function/method is returned from within the race condition of the 'start' method
-    // Similarly also 'handleControllerObs' function/method is returned
-    // 'handleControllerObs' and 'handleControllerObs' do not return the same, unless we force it adding explicitely the return
-    // If they do not return the same, TypeScript complains since they are used as input for the same 'mergeMap' function
     handleMonitorObs(socket) {
         const monitorId = 'Monitor' + this.monitorCounter;
         this.monitorCounter++;
@@ -92,12 +88,6 @@ class MobileObjectServer {
         return mobObj.dynamicsObs
             .pipe(operators_1.tap(data => socket.send(MessageType.DYNAMICS_INFO + mobObjId, JSON.stringify(data))), operators_6.takeUntil(this.stopSendDynamicsForMobileObject(socket, mobObjId)), operators_3.finalize(() => console.log('handleDynamicsObs completed', mobObjId, monitorId)));
     }
-    // It is important to explicitely state that the return is of type Observable<any>, i.e. a more generic return
-    // then what TypeScript would be able to get using inference
-    // The reason is that this function/method is returned from within the race condition of the 'start' method
-    // Similarly also 'handleControllerObs' function/method is returned
-    // 'handleControllerObs' and 'handleControllerObs' do not return the same, unless we force it adding explicitely the return
-    // If they do not return the same, TypeScript complains since they are used as input for the same 'mergeMap' function
     handleControllerObs(socket) {
         const mobObjId = 'MobObj' + this.mobileObjectCounter;
         this.mobileObjectCounter++;
