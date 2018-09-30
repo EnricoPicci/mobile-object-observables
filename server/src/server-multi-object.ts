@@ -55,7 +55,7 @@ export class MobileObjectServer {
 
     public start(socketObs: Observable<ISocketObs>) {
         socketObs.pipe(
-            tap(() => console.log('Connected client.')),
+            tap(() => console.log('Connected client')),
             mergeMap(socket =>
                 // on one socket we can receive either one BIND_MONITOR or one BIND_CONTROLLER message
                 // therefore we can use race method to make sure that if one type of message of one time arrives
@@ -142,11 +142,11 @@ export class MobileObjectServer {
         this.mobileObjects.set(mobObjId, mobObj);
         console.log('mobObj added', mobObjId);
         socket.send(MessageType.MOBILE_OBJECT, mobObjId);
-        // with this Subject we have to communicate something happend on the Controller to the Monitor
-        // since there are potentially N Controllers and M Monitors, we need that all Monitors and Controllers
-        // are subscribed to the same Subject/Observable, which behaves like a Subject when a controller disconnects
-        // so that it can notify the monitors, for which it behaves like an Observable, of its loss
-        // For this reason, i.e. the need to have the same Subject/Observable shared among all Controllers and Monitors, 
+        // with this Subject we have to communicate to all active Monitors that a new Controller has connected and 
+        // therefore that a new MobileObject has been created and added to the list of MobileObjects that
+        // every Monitor has to show.
+        // Since there are potentially M Monitors, we need that all Monitors are subscribed to the same Subject.
+        // For this reason, i.e. the need to have the same Subject subscribed by all Monitors, 
         // we are using a property of the class MobileObjectServer
         this.mobileObjectAdded.next({mobObj, mobObjId});
 
@@ -159,11 +159,11 @@ export class MobileObjectServer {
             tap(() => console.log('Controller disconnected ' + mobObjId)),
             tap(() => this.mobileObjects.delete(mobObjId)),
             tap(
-                // with this Subject we have to communicate something happend on the Controller to the Monitor
-                // since there are potentially N Controllers and M Monitors, we need that all Monitors and Controllers
+                // with this Subject we have to communicate something happend on the Controller to the all active Monitors
+                // since there are potentially N Controllers and M Monitors, we need that all Monitors
                 // are subscribed to the same Subject/Observable, which behaves like a Subject when a controller disconnects
                 // so that it can notify the monitors, for which it behaves like an Observable, of its loss
-                // For this reason, i.e. the need to have the same Subject/Observable shared among all Controllers and Monitors, 
+                // For this reason, i.e. the need to have the same Subject subscribed by all Monitors, 
                 // we are using a property of the class MobileObjectServer
                 () => this.mobileObjectRemoved.next(mobObjId)
             ),

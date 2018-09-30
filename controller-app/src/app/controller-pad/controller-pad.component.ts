@@ -1,8 +1,10 @@
 import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
 import {mergeMap, tap, takeUntil} from 'rxjs/operators';
+import { merge } from 'rxjs';
+
+import {NgJoystickComponent} from 'ng-joystick';
 
 import {SocketService, Event, MobileObjectCommand, MobileObjectCommandMessage} from '../services/socket-service';
-import {NgNippleComponent} from '../ng-nipple/ng-nipple.component';
 
 @Component({
   selector: 'rct-controller-pad',
@@ -14,7 +16,7 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
   turnedOn = false;
   acc = 50;
 
-  @ViewChild('nipple') nippleComp: NgNippleComponent;
+  @ViewChild('joystick') joystickComp: NgJoystickComponent;
 
   constructor(private socketService: SocketService) { }
 
@@ -48,22 +50,8 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
       this.turnedOn = JSON.parse(turnedOn);
       console.log('turnedOn multi 1', turnedOn, this.turnedOn);
     });
-    // this.socketService.onEvent(Event.MOBILE_OBJECT)
-    //   .subscribe(mobObjId => {
-    //     console.log('mobObjId', mobObjId);
-    //     this.subscribeEvents(mobObjId);
-    //   });
 
   }
-
-  // private subscribeEvents(mobObjId: string) {
-  //   console.log('subscribeEvents', Event.TURNED_ON + mobObjId);
-  //   this.socketService.onEvent(Event.TURNED_ON + mobObjId)
-  //       .subscribe(turnedOn => {
-  //           this.turnedOn = JSON.parse(turnedOn);
-  //           console.log('turnedOn multi', turnedOn, this.turnedOn);
-  //       });
-  // }
 
   ngOnDestroy() {
     this.socketService.close();
@@ -71,7 +59,7 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
 
   ngAfterViewInit() {
     // END
-    this.nippleComp.end
+    this.joystickComp.joystickRelease$
     .pipe(
       takeUntil(this.socketService.onEvent(Event.DISCONNECT))
     )
@@ -82,7 +70,7 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
       }
     );
     // UP
-    this.nippleComp.up
+    this.joystickComp.up$
     .pipe(
       takeUntil(this.socketService.onEvent(Event.DISCONNECT))
     )
@@ -94,7 +82,7 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
       }
     );
     // DOWN
-    this.nippleComp.down
+    this.joystickComp.down$
     .pipe(
       takeUntil(this.socketService.onEvent(Event.DISCONNECT))
     )
@@ -106,7 +94,7 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
       }
     );
     // LEFT
-    this.nippleComp.left
+    this.joystickComp.left$
     .pipe(
       takeUntil(this.socketService.onEvent(Event.DISCONNECT))
     )
@@ -118,7 +106,7 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
       }
     );
     // RIGHT
-    this.nippleComp.right
+    this.joystickComp.right$
     .pipe(
       takeUntil(this.socketService.onEvent(Event.DISCONNECT))
     )
@@ -144,21 +132,9 @@ export class ControllerPadComponent implements OnInit, OnDestroy, AfterViewInit 
   turnOff() {
     this.sendCommand({action: MobileObjectCommand.TURN_OFF});
   }
-  // rightAcc() {
-  //   this.sendCommand({action: MobileObjectCommand.ACCELERATE_X, value: this.acc});
-  // }
-  // leftAcc() {
-  //   this.sendCommand({action: MobileObjectCommand.ACCELERATE_X, value: -1 * this.acc});
-  // }
   stopAccX() {
     this.sendCommand({action: MobileObjectCommand.ACCELERATE_X, value: 0});
   }
-  // downAcc() {
-  //   this.sendCommand({action: MobileObjectCommand.ACCELERATE_Y, value: this.acc});
-  // }
-  // upAcc() {
-  //   this.sendCommand({action: MobileObjectCommand.ACCELERATE_Y, value: -1 * this.acc});
-  // }
   stopAccY() {
     this.sendCommand({action: MobileObjectCommand.ACCELERATE_Y, value: 0});
   }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs/Observable';
-import { webSocket } from 'rxjs/observable/dom/webSocket';
-import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject';
+import { Observable } from 'rxjs';
+import { webSocket } from 'rxjs/webSocket';
+import { WebSocketSubject } from 'rxjs/webSocket';
 
 import {environment} from '../../environments/environment';
 import {SocketService, Event} from './socket-service';

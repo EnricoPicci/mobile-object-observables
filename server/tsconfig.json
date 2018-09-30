@@ -6,8 +6,8 @@
     "outDir": "dist",
     "sourceMap": true,
     "allowJs": true,  // Enrico
-    "noUnusedLocals": true,  // Enrico
-    "noUnusedParameters": true   // Enrico
+    "noUnusedLocals": false,  // Enrico
+    "noUnusedParameters": false   // Enrico
   },
   "include": [
     "src/**/*.ts", "*.ts", "src/*.ts"

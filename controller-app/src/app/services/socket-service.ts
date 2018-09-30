@@ -1,5 +1,5 @@
 
-import { Observable } from 'rxjs/Observable';
+import { Observable } from 'rxjs';
 
 
 export enum MobileObjectCommand {
@@ -34,6 +34,6 @@ export enum Event {
 export abstract class SocketService {
     abstract initSocket();
     abstract send(event, data?);
-    abstract onEvent(event): Observable<any>;
+    abstract onEvent(event): Observable<string>;
     abstract close();
 }

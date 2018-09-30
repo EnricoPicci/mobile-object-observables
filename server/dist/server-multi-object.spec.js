@@ -1,4 +1,7 @@
 "use strict";
+// These tests simulate the MobileObjectServer
+// If you want to run tests against a MobileObjectServer running locally use the tests specified in
+// the file "server-multi-object.test.ts"
 Object.defineProperty(exports, "__esModule", { value: true });
 require("mocha");
 const rxjs_1 = require("rxjs");
@@ -86,7 +89,7 @@ describe('0 - lifecycle of a Controller', () => {
             .subscribe(data => controllerId = data.message);
         setTimeout(() => {
             monitorSocket.bindAsMonitor();
-        }, 150);
+        }, 350);
         setTimeout(() => {
             if (!controllerId) {
                 const err = '0.2 - There controllerId should have been received';
@@ -101,7 +104,7 @@ describe('0 - lifecycle of a Controller', () => {
                 done();
                 throw (new Error(err));
             }
-        }, 250);
+        }, 400);
         setTimeout(() => {
             console.log('sockets disconnected');
             // simulates disconnection
@@ -134,7 +137,7 @@ describe('0 - lifecycle of a Controller', () => {
         // after some time a Monitor connects to the Server
         setTimeout(() => {
             monitorSocket.bindAsMonitor();
-        }, 150);
+        }, 50);
         // after the Controller sends the turnOn command to its MobileObject
         setTimeout(() => {
             const command = { action: server_multi_object_2.MobileObjectCommand.TURN_ON };
@@ -203,19 +206,23 @@ describe('1 - lifecycle of a Monitor', () => {
         mobileObjectServer.start(sockets);
         // a socket connects to the Server - it will later be bound as Monitor
         const monitorSocket = socket_obs_test_1.socketConnected(sockets);
-        let controllerId;
+        let controllerIdReceivedByMonitor;
+        let controllerIdReceivedByController;
         monitorSocket.sendSubject
-            .subscribe(data => controllerId = data.message);
+            .subscribe(data => controllerIdReceivedByMonitor = data.message);
         // emits to simulate that a BIND_MONITOR has been received over this socket
         monitorSocket.bindAsMonitor();
         // after some time a Controller connects to the Server
         const controllerSocket = socket_obs_test_1.socketConnected(sockets);
+        controllerSocket.sendSubject
+            .pipe(operators_1.take(1))
+            .subscribe(data => controllerIdReceivedByController = data.message);
         setTimeout(() => {
             controllerSocket.bindAsController();
         }, 150);
         setTimeout(() => {
-            if (!controllerId) {
-                const err = '1.2 - There controllerId should have been received';
+            if (controllerIdReceivedByMonitor !== controllerIdReceivedByController) {
+                const err = '1.2 - The controllerId should have been received by the monitor';
                 console.error(err);
                 done();
                 throw (new Error(err));

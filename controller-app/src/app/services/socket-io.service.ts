@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs/Observable';
-import { Observer } from 'rxjs/Observer';
+import { Observable ,  Observer } from 'rxjs';
 
 import * as socketIo from 'socket.io-client';
 
@@ -26,9 +25,9 @@ export class SocketIoService extends SocketService {
       this.socket.emit(event, message);
   }
 
-  public onEvent(event): Observable<any> {
-      return new Observable<any>((observer: Observer<any>) => {
-          this.socket.on(event, data => observer.next(data));
+  public onEvent(event): Observable<string> {
+      return new Observable<string>((observer: Observer<string>) => {
+          this.socket.on(event, (data: string) => observer.next(data));
       });
   }
 

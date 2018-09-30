@@ -44,22 +44,8 @@ class MobileObject {
         this.turnOnSubject.next(false);
         const tFrames = this.tFrames(timeFramesMilliseconds);
         const dfX = this.dynamicsF(initialVelocityX, 0);
-        // this.dynamicsObsX = this.accelerateSubjectX.pipe(
-        //     switchMap(acc => dfX(acc, tFrames)),
-        //     // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
-        //     // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
-        //     publishReplay(1),
-        //     refCount(),
-        //   );
         this.dynamicsObsX = this.dynamicsSharedF(this.accelerateSubjectX, tFrames, dfX);
         const dfY = this.dynamicsF(initialVelocityY, 0);
-        // this.dynamicsObsY = this.accelerateSubjectY.pipe(
-        //     switchMap(acc => dfY(acc, tFrames)),
-        //     // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
-        //     // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
-        //     publishReplay(1),
-        //     refCount(),
-        //   );
         this.dynamicsObsY = this.dynamicsSharedF(this.accelerateSubjectY, tFrames, dfY);
         this.dynamicsObs = this.primDynamicsObs();
         if (turnOn) {
@@ -73,7 +59,8 @@ class MobileObject {
         // https://stackoverflow.com/questions/50407240/test-in-mocha-not-completing-if-sharereplay-operator-of-rxjs-is-used
         operators_5.publishReplay(1), operators_6.refCount());
     }
-    // higher order function that returns a function that calculates the values related to the dynamics of the object
+    // returns an Observable which emits the dynamics information of the MobileObject over time 
+    // the parameters governing the calculation of the dynamics information change if the acceleration changes
     dynamicsSharedF(accObservable, timeFramesMilliseconds, df) {
         return accObservable.pipe(operators_3.switchMap(acc => df(acc, timeFramesMilliseconds)), 
         // we use publishReplay(1) and refCount() instead of shareReplay(1) since there is a bug is shareReplay
